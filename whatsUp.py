@@ -368,7 +368,7 @@ def hilites():
         return render_template('SQLerror.html', err=hilites)
 
     defs.debug(f"Hilites: {hilites}")
-    return render_template('whatsUpDBmain.html', Session=Session, DSO=DSOTYPE, SEARCHTYPE= SEARCHTYPE)
+    return render_template('whatsUpDBmain.html', Session=Session, DSO=DSOTYPE, SEARCHTYPE= SEARCHTYPE, SQL='None')
 
 #================Manage DataBase ==============================
 @app.route('/managedb', methods=['GET', 'POST'])
