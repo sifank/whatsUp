@@ -1,4 +1,8 @@
-<!-- whatsUpList.html -->
+<!--  File:            whatsUpList.html
+        Version:    20260830
+        Author:     Sifan
+-->
+
 <html lang="en">
 <head>
     <meta cahrset="UTF-8">
@@ -17,13 +21,9 @@
 
         <!-------------------------------------------------------------------->
         <tr>
-            <td style="width: 25ch;">Sun Altitude</td>
-            <td style="width: 10ch;">{{HI["sun_alt"]}}</td>
-            <td style="width: 25ch;">{{HI["sky_status"]}}</td>
-            <td style="width: 5ch;"></td>
-            <td style="width: 25ch;">Moon Status</td>
-            <td style="width: 25ch;">Illumination : {{HI["moon_illumination"]}}</td>
-            <td style="width: 25ch;">Alt: {{HI["moon_alt"]}} Az: {{HI["moon_az"]}}</td>
+            <td style="width: 35ch;">Sun Altitude: {{HI["sun_alt"]}} {{HI["sky_status"]}}</td>
+            <td style="width: 45ch;">Moon: Illumination: {{HI["moon_illumination"]}} Alt: {{HI["moon_alt"]}} Az: {{HI["moon_az"]}}</td>
+            <td style="width: 30ch;">Equip FOV: {{HI['fov_width']}} x {{HI['fov_height']}}
         </tr>
     </table>
     </div>
