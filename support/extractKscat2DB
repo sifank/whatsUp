@@ -1,0 +1,106 @@
+#!/usr/bin/python3
+# Program:	extractKscat2DB
+# Version:	20260714
+# Author:	Sifan
+# Desc:		extracts info from kstars kscat (sqlite) db and inputs to whatsUp db
+
+import sys
+import mysql.connector
+import sqlite3
+
+# Database Configuration
+mdb_config = {
+    'host': 'depoe',
+    'user': 'sifan',
+    'password': 'all4Sky',
+    'database': 'kahaleobs'
+}
+
+#--------------------------------------------------------
+# Open Database
+def openDB():
+    try:
+        conn = mysql.connector.connect(**mdb_config)
+        cursor = conn.cursor()
+    except mysql.connector.Error as err:
+        print(f"Database error: {err}")
+        print("Exiting ...")
+        sys.exit(1)
+
+    return conn, cursor
+
+#--------------------------------------------------------
+# Close Database
+def closeDB(conn, cursor):
+    conn.close()
+    cursor.close()
+    return
+
+#--------------------------------------------------------
+def main():
+    if len(sys.argv) !=4:
+        print(f"Usage:  {sys.argv[0]} database xxx.kscat sqliteTable")
+        print(f"Current database selections are: whatsUp, DScatalog, IPcatalog")
+        print(f"Us ls *.kscat in the ./.var/app/org.kde.kstars/data/kstars or ./.local/share/kstars/")
+        print("sqlite3 xxx.kscat \".tables\"")
+        print("sqlite3 xxx.kscat \"pragma table_info(cat);\"")
+        sys.exit(1)
+    database = sys.argv[1]
+    sqlite_file = sys.argv[2]
+    stable = sys.argv[3]
+
+    # 1. Connect to the database
+    sconn = sqlite3.connect(sqlite_file)
+
+    # 2. Set the row factory to sqlite3.Row (retrieves as dictionary)
+    sconn.row_factory = sqlite3.Row
+    scursor = sconn.cursor()
+
+    # 3. Execute your query
+    scursor.execute(f"SELECT name, long_name, type, ra, dec, magnitude, major_axis, position_angle FROM {stable}")
+
+    added = 0
+    mconn, mcursor = openDB()
+    imageLoc = " "
+    procFlag = "Need"
+
+    row = scursor.fetchone()
+    # for name, data in db:
+    while row is not None:
+        cleanedCommonName = row['long_name'].replace('"', '').replace("'", "")
+        sql = f"INSERT INTO kahaleobs.{database}  set \
+                    objectName = \"{row['name']}\", \
+                    commonName = \"{cleanedCommonName}\", \
+                    type = \"{row['type']}\", \
+                    rightascension = \"{row['ra']}\", \
+                    declination = \"{row['dec']}\", \
+                    magnitude = \"{row['magnitude']}\", \
+                    apSize = \"{row['major_axis']}\", \
+                    PA = \"{row['position_angle']}\", \
+                    imageLoc = \"{imageLoc}\", \
+                    procFlag = \"{procFlag}\" \
+                    ;"
+        try:
+            #print(f"DIAG sql: {sql}")
+            mcursor.execute(sql)
+            mconn.commit()
+            added += 1
+            #print(f"Added: {row['name']}")
+
+        except mysql.connector.Error as err:
+            if "Duplicate" in err.msg:
+                #print(f"DIAG duplicate string")
+                pass
+            else:
+                print(f"While added {row['name']}")
+                print(f"Database error: {err}")
+
+        row = scursor.fetchone()
+
+    closeDB(mconn, mcursor)
+    scursor.close()
+    sconn.close()
+    print(f"\n {added} Ojbects to the DBcatalog")
+
+if __name__ == "__main__":
+    main()

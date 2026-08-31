@@ -1,0 +1,376 @@
+#!/usr/bin/python3
+# Program:	whatsUp2
+# Version:	20260629
+# Author:	Sifan
+# Desc:		Lists which objects are visible right now w/moon tracker
+
+import datetime
+import math
+import sys
+from PIL import Image
+import matplotlib.pyplot as plt
+import numpy as np
+from skyfield.api import wgs84, load, Star
+import mysql.connector
+from astropy.coordinates import SkyCoord
+import astropy.units as u
+from astropy.time import Time
+
+DEBUG = "False"
+
+#------------------------------------------------------------------------------------------------------------
+# Database Configuration
+db_config = {
+    'host': 'depoe',
+    'user': 'sifan',
+    'password': 'all4Sky',
+    'database': 'kahaleobs'
+}
+
+# Equipment selector choices
+EQUIPFOV = {
+    "1": ("C14 .2 ASI294", 162, 111),
+    "2": ("C14 .7 ASI294", 24.1, 16.4),
+    "3": ("C14 1 ASI294", 16.8, 20.4),
+    "4": ('Dwarf3 W', 35.0, 35.0),
+    "5": ('Dwarf3 T', 2.03, 1.47),
+     '6': ('ES152 1 ASI2600', 81.6, 54.0)
+}
+
+frameMap = {"all": "all", "large": "Too Large (Mosaic)", "small": "Too Small (Zoom)", "fit": "Perfect Fit"}
+linelength = 145
+
+#--------------------------------------------------------
+# Diag printout if DEBUG is true
+def debug(msg):
+    if DEBUG == "True":
+        print(f"DIAG {msg}")
+
+    return
+
+#--------------------------------------------------------
+# Opens the whatsUp database
+def openDB():
+    try:
+        conn = mysql.connector.connect(**db_config)
+        cursor = conn.cursor()
+    except mysql.connector.Error as err:
+        print(f"Database error: {err}")
+        print("Exiting ...")
+        sys.exit(1)
+
+    return conn, cursor
+
+#--------------------------------------------------------
+# Closes the databas
+def closeDB(conn, cursor):
+    conn.close()
+    cursor.close()
+    return
+
+#------------------------------------------------------------------------------------------------------------
+# Calculates the specific calendar date where target is at zenith at midnight.
+# Earth circles the sun; midnight face aligns opposite to Sun location.
+def calculate_midnight_zenith_date(ra_hours):
+    target_sun_ra = (ra_hours + 12.0) % 24.0
+    days_since_march_21 = target_sun_ra / (24.0 / 365.2422)
+    equinox_base = datetime.date(2026, 3, 21)
+    zenith_date = equinox_base + datetime.timedelta(days=int(days_since_march_21))
+    return zenith_date.strftime("%b %d")
+
+#------------------------------------------------------------------------------------------------------------
+# calculate time from Meridian
+def calculate_timeFromMeridian(objra, objdec,dt_utc, longitude):
+    objCoord = SkyCoord(ra=objra* u.deg * 15, dec=objdec*u.deg)
+    time_utc = Time(dt_utc, scale='utc')
+    lst = time_utc.sidereal_time('mean', longitude=(longitude*u.deg).to(u.hourangle))
+    hour_angle = (lst - objCoord.ra).wrap_at(12 * u.hour)
+    deg_from_meridian = abs(hour_angle.degree)
+    ha_hours = hour_angle.hour
+    medHr = int(abs(ha_hours))
+    medMin = int((abs(ha_hours) - medHr) * 60)
+    medLoc = "after" if ha_hours > 0 else "before"
+    return(medLoc, medHr, medMin)
+
+#------------------------------------------------------------------------------------------------------------
+#Recommends base sub-exposure frame timings to capture details safely.
+# Bright clusters require short exposures to preserve color; faint nebulae require longer exposures
+def recommend_exposure(magnitude, object_type):
+    if "Cluster" in object_type:
+        base = 60 if magnitude > 6.0 else 30
+    elif "Globular" in object_type:
+        base = 90 if magnitude > 7.0 else 60
+    elif "Planetary" in object_type:
+        base = 120 if magnitude > 9.0 else 60
+    elif "Galaxy" in object_type:
+        base = 300 if magnitude > 8.5 else 180
+    else:  # Emission / Reflection Nebulae
+        base = 300 if magnitude > 6.5 else 180
+    return f"{base}s"
+
+#------------------------------------------------------------------------------------------------------------
+# Determines observation conditions based on Sun altitude.
+def get_sky_condition(sun_alt):
+    if sun_alt >= 0:
+        return "Daylight (Not viewable)"
+    elif -6 <= sun_alt < 0:
+        return "Civil Twilight (Bright sky)"
+    elif -12 <= sun_alt < -6:
+        return "Nautical Twilight (Sky darkening)"
+    elif -18 <= sun_alt < -12:
+        return "Astronomical Twilight (Deep sky targets becoming visible)"
+    else:
+        return "True Night (Ideal viewing conditions)"
+
+#------------------------------------------------------------------------------------------------------------
+# get gps from fieldallsky
+def gpsFromAllsky():
+    conn, cursor = openDB()
+    sql = "SELECT * FROM gpsloc"
+    try:
+        cursor.execute(sql)
+        row = cursor.fetchone()
+    except mysql.connector.Error as err:
+        print(f"Database error: {err}")
+        sys.exit(1)
+
+    GPSfix, CTime, UTime, LATITUDE, LONGITUDE, ELEVATION = row
+    if GPSfix == "Invalid" or GPSfix == "NO_FIX":
+        print(f"GPS issue: {GPSfix}")
+        sys.exit(1)
+    return(GPSfix, LATITUDE, LONGITUDE, ELEVATION )
+
+#------------------------------------------------------------------------------------------------------------
+# Evaluates how well a deep sky object frames within the sensor limits.
+def evaluate_framing(target_size_arcmin, fov_w, fov_h):
+    limiting_dimension = min(fov_w, fov_h)
+    if target_size_arcmin > limiting_dimension:
+        return "Too Large (Mosaic)"
+    elif target_size_arcmin < (limiting_dimension * 0.10):
+        return "Too Small (Zoom)"
+    else:
+        return "Perfect Fit"
+
+#------------------------------------------------------------------------------------------------------------
+# Calc datetime obj for 11pm tonight
+def timeAt11():
+    local_now = datetime.datetime.now().astimezone()
+    local_11pm = datetime.datetime.combine(local_now.date(), datetime.time(23, 0))
+    local_11pm_aware = local_11pm.replace(tzinfo=local_now.tzinfo)
+    current_time_utc = local_11pm_aware.astimezone(datetime.timezone.utc)
+    return(current_time_utc)
+
+
+    #============initial calculations ==================
+def createList(DEFSEL):
+    # 3. Initialize Skyfield Ephemeris
+    ts = load.timescale()
+    eph = load('de421.bsp')
+    earth, sun, moon = eph['earth'], eph['sun'], eph['moon']
+    #observer = earth + wgs84.latlon(DEFSEL["LONGITUDE"], elevation_m=DEFSEL["ELEVATION"])
+    observer = earth + wgs84.latlon(DEFSEL["LATITUDE"], DEFSEL["LONGITUDE"], elevation_m=DEFSEL["ELEVATION"])
+
+    # 4. Time Parsing
+    t = ts.from_datetime(DEFSEL["current_time_utc"])
+    
+    # 5. Tracker System: Sun
+    sun_pos = observer.at(t).observe(sun).apparent()
+    sun_alt, _, _ = sun_pos.altaz()
+    sky_status = get_sky_condition(sun_alt.degrees)
+    
+    # 6. Tracker System: Moon Position & Illumination Phase
+    moon_pos = observer.at(t).observe(moon).apparent()
+    moon_alt, moon_az, _ = moon_pos.altaz()
+    
+    # Calculate phase/illumination using earth-centered sun/moon separation
+    e_sun = earth.at(t).observe(sun)
+    e_moon = earth.at(t).observe(moon)
+    phase_angle = e_moon.phase_angle(sun).degrees
+    moon_illumination = (1.0 + math.cos(math.radians(phase_angle))) / 2.0 * 100
+     
+    # Visual Canvas Instantiation
+    visible_az, visible_alt, visible_data = [], [], []
+    
+    #------------------ get objects from db --------------------------------------------------------
+    conn, cursor = openDB()
+    sql = "SELECT * FROM whatsUp"
+    try:
+        cursor.execute(sql)
+        row = cursor.fetchone()
+
+    except mysql.connector.Error as err:
+        print(f"Database error: {err}")
+        sys.exit(1)
+
+    #for name, data in MESSIER_CATALOG.items():
+    while row is not None:
+        index, name, common_name, obj_type, ra, dec, mag, size, image, flag = row
+        debug(f"Row {index} {name}")
+        target = Star(ra_hours=ra, dec_degrees=dec)
+        alt, az, _ = observer.at(t).observe(target).apparent().altaz()
+
+        # ---- only include if above min altitude
+        if alt.degrees > DEFSEL["MINALT"]:
+
+            # --- check framing stat, if size not set skip ------
+            if size == "--":
+                framing_status = "--"
+                psize = "--"
+            else:
+                framing_status = evaluate_framing(float(size), DEFSEL["fov_w_arcmin"], DEFSEL["fov_h_arcmin"])
+                psize = f"{float(size):.1f}"
+            if framing_status == DEFSEL["FRAMESTAT"] or DEFSEL["FRAMESTAT"] == "all" or framing_status == "--":
+
+                # ---- check for before or after median
+                medLoc, medHr, medMin = calculate_timeFromMeridian(ra, dec, DEFSEL["current_time_utc"], DEFSEL["LONGITUDE"])
+                #print(f"DIAG: {medLoc} - {DEFSEL["medReqLoc"]}")
+                if DEFSEL["medReqLoc"] == medLoc or DEFSEL["medReqLoc"] == 'all':
+
+                    # ----- check hours before or after median
+                    if medHr <= DEFSEL["medReqHr"]:
+                        visible_az.append(np.radians(az.degrees))
+                        visible_alt.append(90.0 - alt.degrees)
+
+                        # Calculate angular separation between target and moon
+                        astrometric = observer.at(t).observe(target)
+                        target_apparent = astrometric.apparent()
+                        sep_deg = target_apparent.separation_from(moon_pos).degrees
+
+                        # Determine capture rating dynamically
+                        # Run Mathematical Engine Functions
+                        midnight_zenith = calculate_midnight_zenith_date(ra)
+                        medLoc, medHr, medMin = calculate_timeFromMeridian(ra, dec, DEFSEL["current_time_utc"], DEFSEL["LONGITUDE"])
+                        timeFromMeridian = f"{medLoc:<6} {medHr:>2d}:{medMin:>02d}"
+                        #print(f"DIAG time from meridian: {timeFromMeridian}")
+                        # ---- skip if we don't have magnitude'
+                        if mag == "--":
+                            recommend_sub = "--"
+                        else:
+                            recommended_sub = recommend_exposure(float(mag), obj_type)
+                            pmag = f"vMag {float(mag):.1f}"
+
+                        # --- and save for output to table and/or plot
+                        visible_data.append({"name": name,
+                                            "common_name": common_name,
+                                            "alt": alt.degrees,
+                                            "az": az.degrees,
+                                            "size": psize,
+                                            "mag": pmag,
+                                            "type": obj_type,
+                                            "exposure": recommended_sub,
+                                            "framing": framing_status,
+                                            "moon_sep": sep_deg,
+                                            "meridian": timeFromMeridian,
+                                            "zenith_date": midnight_zenith})
+
+        row = cursor.fetchone()
+    
+    closeDB(conn, cursor)
+
+    #---------------------------------------------------------------------------------------
+    # Create sky plot
+    if DEFSEL["defPlot"]:
+        fig = plt.figure(figsize=(11, 11), facecolor='#0A0000')
+        ax = fig.add_subplot(111, polar=True)
+        ax.set_facecolor('#050000')
+        ax.set_theta_zero_location('N')
+        ax.set_theta_direction(1)
+        ax.scatter(visible_az, visible_alt, color='#FF0000', s=35, alpha=0.9, edgecolors='#7A0000')
+        for az_rad, alt_offset, obj in zip(visible_az, visible_alt, visible_data):
+                    ax.text(az_rad, alt_offset + 1.8, obj['name'], color='#FF3333', fontsize=8, ha='center', weight='bold')
+
+        ax.set_ylim(0, 90)
+        ax.set_yticklabels([])
+        ax.set_xticklabels(['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'], color='#880000', fontsize=11, weight='bold')
+        ax.grid(color='#2A0000', linestyle='-', linewidth=0.7)
+        plt.title(f"TACTICAL PHOTOGRAPHY PLANNER CHART\nLincoln Beach, OR | Night-Vision Active", color='#FF0000', fontsize=13, weight='bold', pad=25)
+        plt.savefig('/tmp/whatsUp_Sky_chart.png', facecolor=fig.get_facecolor(), edgecolor='none', dpi=200, bbox_inches='tight')
+
+
+    return visible_data, sun_alt, sky_status, moon_illumination, moon_alt, moon_az
+
+    #=================================================================
+    #----------------- Main -----------------------------------------------------------------------------------
+def main():
+    # defaults: date/time, confName, fov_w_arcmin, fov_h_arcmin, minalt, moondist, frame, flag, gpsfix, lat, long, elv, medReqLoc, medReqHr, pyplot
+    confName, fov_w_arcmin, fov_h_arcmin = EQUIPFOV["2"]
+    current_time_utc = timeAt11()
+    DEFSEL = {
+        "current_time_utc": current_time_utc,
+        "confName": confName,
+        "fov_w_arcmin": fov_w_arcmin,
+        "fov_h_arcmin": fov_h_arcmin,
+        "MINALT": 20,
+        "MOONDIST": 20,
+        "FRAMESTAT": "all",
+        "LATITUDE": 44.8825,
+        "LONGITUDE": -124.0339,
+        "ELEVATION": 15,
+        "medReqLoc": "all",
+        "medReqHr": 13,
+        "defPlot": False
+    }
+
+    visible_data, sun_alt, sky_status, moon_illumination, moon_alt, moon_az = createList(DEFSEL)
+
+    #---------------print header -------------------------------------------------
+    # 9. Render Output Console Report
+    visible_data.sort(key=lambda item: item["alt"], reverse=True)
+    print("=" * linelength)
+    print(f" WHAT'S UP REPORT for {DEFSEL['FRAMESTAT']}")
+    print(f" {DEFSEL['confName']} Dim: {DEFSEL['fov_w_arcmin']:.1f}' x {DEFSEL['fov_h_arcmin']:.1f}' arcminutes")
+    print(f" Time (UTC):        {DEFSEL['current_time_utc'].strftime('%Y-%m-%d %H:%M:%S')}")
+    print(f" Time (local):      {DEFSEL['current_time_utc'].astimezone().strftime('%Y-%m-%d %H:%M:%S')}")
+    print(f" Sun Altitude:      {sun_alt.degrees:.1f}° ({sky_status})")
+    print(f" Moon Status:       {moon_illumination:.1f}% Illuminated | Alt: {moon_alt.degrees:.1f}° | Az: {moon_az.degrees:.1f}°")
+    print(f" GPS:               Long: {DEFSEL['LONGITUDE']} Lat:  {DEFSEL['LATITUDE']} Elev: {DEFSEL['ELEVATION']}")
+    print("=" * linelength)
+    
+    print(f"{'Object':<15} \
+{'Description':<25} \
+{'Type':<15} \
+{'Alt':<7} \
+{'Az':<7} \
+{'Mag':<8} \
+{'Size':<6} \
+{'Sub':<4} \
+{'Framing Evaluation':<20} \
+{'Zenith':<9} \
+{'Meridian':<11} \
+{'MoonSep':<10}")
+    
+    print("-" * linelength)
+    
+    #--------------- print data ------------------------------------------------
+    for obj in visible_data:
+        # Note interference if object is closer than 15° to a visible, lit Moon
+        interference = "!" if (obj["moon_sep"] < DEFSEL["MOONDIST"] and moon_alt.degrees > 0 and moon_illumination > 20) else ""
+
+        print(f"{obj['name']:<15} \
+{obj['common_name']:<22} \
+{obj['type']:<15} \
+{obj['alt']:>6.1f}° \
+{obj['az']:>6.1f}°  \
+{obj['type']:>9} \
+{obj['size']:>5} \
+{obj['exposure']:>6} \
+{obj['framing']:<20} \
+{obj['zenith_date']:<7} \
+ {obj['meridian']:<10} \
+{obj['moon_sep']:>6.1f}°{interference} \
+")
+
+    #--------------- print footer ------------------------------------------------
+    print("-" * linelength)
+    print(f"Total Targets Tracked: {len(visible_data)}")
+    if DEFSEL["defPlot"]:
+        print(f" Active Planisphere Map written to '/tmp/whatsUp_Sky_chart.png'")
+    print("=" * linelength)
+                    
+if __name__ == "__main__":
+    main()
+
+#---------------------------------------------------------------------------------------
+# msyql commands to create this table:
+# CREATE TABLE `whatsUp` ( `id` INT AUTO_INCREMENT PRIMARY KEY,  `objectName` VARCHAR(15) NOT NULL, `commonName` VARCHAR(40),  `rightascension` FLOAT,  `declination` FLOAT,  `magnitude` FLOAT,  `apSize` FLOAT,  `imageLoc` VARCHAR(40),  `procFlag` VARCHAR(10));
+# alter table whatsUp add unique index `idx_objectName` (`objectName`);

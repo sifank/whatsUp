@@ -1,0 +1,91 @@
+#!/usr/bin/python3
+import sys
+import argparse
+from astroquery.simbad import Simbad
+
+# DSO type
+DSO = {
+    0: "Star",
+    1: "Catalog Star",
+    2: "Planet, Dwarf Planet, or Solar System body",
+    3: "Open Cluster",
+    4: "Globular Cluster",
+    5: "Gaseous Nebula",
+    6: "Planetary Nebula",
+    7: "Supernova Remnant",
+    8: "Galaxy",
+    9: "Comet",
+    10: "Asteroid",
+    11: "Constellation",
+    12: "Moon",
+    13: "Asterism",
+    14: "Galaxy Cluster",
+    15: "Dark Nebula",
+    16: "Quasar",
+    17: "Multiple Star (Binary or Multi-star system)",
+    18: "Radio Source",
+    19: "Satellite",
+    20: "Supernova "
+    }
+
+# Set up command line argument parsing
+parser = argparse.ArgumentParser(description="Fetch Deep Sky Object metadata from SIMBAD.")
+parser.add_argument("object_name", type=str, help="Name of the object (e.g., M104, NGC 2244, Orion)")
+args = parser.parse_args()
+
+# Map Simbad otype to KSTARS type
+SIMBAD_TO_KSTARS = {
+    # Stars
+    "Star": 0,
+    "SB*": 0,
+    "V*": 0,
+    "Em*": 0,
+    "WR*": 0,
+    "Be*": 0,
+    # Clusters
+    "Cl*": 3,
+    "GlbCl": 4,
+    "GlC": 4,
+    "Assoc*": 3,
+    # Nebulae & ISM
+    "Neb": 5,
+    "PlNeb": 6,
+    "HII": 5,
+    "DrkNeb": 15,
+    "MolCld": 5,
+    # Galaxies
+    "G": 8,
+    "GlClG": 14,
+    # Other / Fallback
+    "SNR": 20,
+    "PN": 6,
+}
+def convert_simbad_to_kstars(simbad_otype: str) -> str:
+    cleaned_type = simbad_otype.strip()
+    return SIMBAD_TO_KSTARS.get(cleaned_type, "Unidentified")
+
+
+# Configure SIMBAD query
+
+simbad = Simbad()
+simbad.add_votable_fields("otype", "dim", 'ra', 'dec')
+#Simbad.add_votable_fields('ra', 'dec', 'V', 'dim', 'otype')
+
+print(f"Searching SIMBAD for '{args.object_name}'...\n")
+result = simbad.query_object(args.object_name)
+if result is not None:
+    # convert Simbad obj to dictionary
+    row = dict(zip(result[0].colnames, result[0].values()))
+
+    #print(f"DIAG: {row['otype']}")
+
+    print(f"** Metadata for {row['main_id']} **")
+    print(f"Type (kstars): {DSO[convert_simbad_to_kstars(row['otype'])]}")
+    print(f"RA:             {row['ra']}")
+    print(f"Dec:            {row['dec']}")
+    print(f"Major Axis:     {row['galdim_majaxis']} arcmin")
+    print(f"Minor Axis:     {row['galdim_minaxis']} arcmin")
+    print(f"Position Angle: {row['galdim_angle']} deg")
+else:
+    print(f"Error: Object '{args.object_name}' not found in the SIMBAD database.")
+

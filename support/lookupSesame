@@ -1,0 +1,161 @@
+#!/usr/bin/python3
+# Program: lookupSesame
+# Version: 20260729
+# Author:  Sifan Kahale
+# Desc:    looksup target from cmd line using the Sesame service
+
+import urllib.parse
+import argparse
+import requests
+
+DEBUG = False
+
+# DSO type
+DSOTYPE = {
+    0: "Star",
+    1: "Catalog Star",
+    2: "Planet, Dwarf Planet, or Solar System body",
+    3: "Open Cluster",
+    4: "Globular Cluster",
+    5: "Gaseous Nebula",
+    6: "Planetary Nebula",
+    7: "Supernova Remnant",
+    8: "Galaxy",
+    9: "Comet",
+    10: "Asteroid",
+    11: "Constellation",
+    12: "Moon",
+    13: "Asterism",
+    14: "Galaxy Cluster",
+    15: "Dark Nebula",
+    16: "Quasar",
+    17: "Multiple Star (Binary or Multi-star system)",
+    18: "Radio Source",
+    19: "Satellite",
+    20: "Supernova ",
+    99: "Unknown"
+    }
+
+# Map Simbad otype to KSTARS type
+SIMBAD_TO_KSTARS = {
+    # --- 0: Stars ---
+    "Star": 0, "*": 0, "V*": 0, "Variable*": 0, "Double*": 0, "PM*": 0,
+    "YSO": 0, "Be*": 0, "Carbon*": 0, "WhiteDwarf": 0, "Neutron*": 0,
+    "SB*": 0,  "BY*": 0, "Em*": 0, "WR*": 0, "Be*": 0, "pA*": 0, "reg": 1,
+    "RS*": 0, "s*b": 0, "Y*O": 0, "TT*": 0, "Or*": 0, "RR*": 0,
+
+    # --- 3: Open Clusters ---
+    "OpenCluster": 3, "Cl*": 3, "Assoc*": 3, "PartofCl": 3,  "As*": 3,
+    "OpC": 3, "MGr": 3, "*Cl": 3,
+
+     # --- 4: Globular Clusters ---
+    "GlobCluster": 4, "GlbCl": 4, "GlC": 4,
+
+    # --- 5: Gaseous Nebulae ---
+    "Nebula": 5, "EmNebula": 5, "ReflNebula": 5, "DarkNebula": 5,
+    "HII": 5, "Cloud": 5, "RfNeb": 5, "AsyNeb": 5,  "Neb": 5,  "PlNeb": 6,
+    "DrkNeb": 15, "MolCld": 5, "RNe": 5, "DNe": 5, "ISM": 5,
+
+    # --- 6: Planetary Nebulae ---
+    "PlanetaryNeb": 6, "PN": 6, "PND": 6, "PN?": 6,
+
+    # --- 7: Supernova Remnants ---
+    "SNRemnant": 7, "SNR": 7,
+
+    # --- 8: Galaxies ---
+    "Galaxy": 8, "G": 8, "BClG": 8, "Seyfert": 8, "Seyfert_1": 8,
+    "Seyfert_2": 8, "HII_G": 8, "InteractG": 8, "PairG": 8, "GroupG": 8,
+    "GTrpl": 8, "GlClG": 14, "GGroup": 14, "GClstr": 14, "AGN": 8,
+    "ClG": 8, "EmG": 8, "GrG": 8, "IG": 8, "CGC": 8, "Sy1": 8, "GiG": 8,
+    "CGG": 8,
+
+    # --- 18: Radio Sources ---
+    "Radio": 18, "RadioS": 18, "Maser": 18,
+
+    # Other / Fallback
+    "QSO": 16, "PN": 6, "Unknown": 99
+}
+
+#--------------------------------------------------------
+# Diag printout if DEBUG is true
+def debug(msg):
+    if DEBUG:
+        print(f"DIAG {msg}")
+    return
+
+def lookup_object(object_name):
+    """Looks up an object using the CDS Sesame Resolver with proper headers and mirrors."""
+    encoded_name = urllib.parse.quote(object_name)
+
+    # Alternative, high-availability mirror to bypass the connection block
+    url = f"https://cdsweb.u-strasbg.fr/cgi-bin/nph-sesame/-oI/A?{encoded_name}"
+
+    # Headers fake a regular web browser profile so the server doesn't reject you
+    headers = {
+        "User-Agent": (
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        )
+    }
+
+    try:
+        # Pass the safety headers explicitly
+        response = requests.get(url, headers=headers, timeout=10)
+        response.raise_for_status()
+
+        lines = response.text.splitlines()
+
+        ra = None
+        dec = None
+        source = "Unknown"
+
+        commonName = []
+        for line in lines:
+            debug(f"Line: {line}")
+            if line.startswith("%J "):
+                parts = line.split()
+                if len(parts) >= 3:
+                    ra = parts[1]
+                    dec = parts[2]
+            elif line.startswith("%C"):
+                otype = line.replace("%C", "").strip()
+                try:
+                    otype = DSOTYPE[SIMBAD_TO_KSTARS[otype.removeprefix('.0 ')]]
+                except:
+                    otype = f"**{otype.removeprefix('.0 ')}**"
+            elif line.startswith("%I "):
+                commonName.append(line.removeprefix('%I ').removeprefix('NAME '))
+
+        if ra is not None and dec is not None:
+            return {
+                "success": True,
+                "name": object_name,
+                "ra_deg": ra,
+                "dec_deg": dec,
+                "otype": otype,
+                "commonName": " ".join(commonName)
+            }
+
+        return {
+            "success": False,
+            "error": f"Object '{object_name}' not found.",
+        }
+
+    except requests.exceptions.RequestException as e:
+        return {"success": False, "error": f"HTTP Request failed: {e}"}
+    except Exception as e:
+        return {"success": False, "error": f"Parsing failed: {e}"}
+
+
+# --- Main ---
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Fetch Deep Sky Object metadata from SIMBAD.")
+    parser.add_argument("object_name", type=str, help="Name of the object (e.g., M104, NGC 2244, Orion)")
+    args = parser.parse_args()
+
+    result = lookup_object(args.object_name)
+    if result['success']:
+        print(f"Name:  {result['name']} RA: {result['ra_deg']} Dec: {result['dec_deg']} Type: {result['otype']}")
+    else:
+        print(f"{args.object_name} {result['error']}")
+

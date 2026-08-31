@@ -1,0 +1,38 @@
+#!/usr/bin/python3
+# Program:	objTypeTable
+
+import urllib.request
+import urllib.parse
+
+# Official CDS SIMBAD synchronous TAP endpoint
+url = "https://unistra.fr"
+
+# Corrected ADQL using 'otypedef' table and valid structural columns
+adql_query = """
+    SELECT otype, label, description 
+    FROM otypedef 
+    ORDER BY otype ASC
+"""
+
+# Structure parameters required by Virtual Observatory TAP specifications
+payload = urllib.parse.urlencode({
+    'REQUEST': 'doQuery',
+    'LANG': 'ADQL',
+    'FORMAT': 'csv',
+    'QUERY': adql_query
+}).encode('utf-8')
+
+try:
+    req = urllib.request.Request(url, data=payload)
+    with urllib.request.urlopen(req) as response:
+        # Decodes the tabular CSV response from SIMBAD's server
+        csv_data = response.read().decode('utf-8')
+        print(csv_data)
+        
+        # Optional: Save directly to a local CSV file
+        with open("simbad_all_otypes.csv", "w") as file:
+           file.write(csv_data)
+            
+except Exception as e:
+    print("Database connection failed:", e)
+

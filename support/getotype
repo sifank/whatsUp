@@ -1,0 +1,17 @@
+#!/usr/bin/python3
+
+from astroquery.simbad import Simbad
+
+# Initialize Simbad
+custom_simbad = Simbad()
+
+# Add the 'otype' field so object classifications are returned
+custom_simbad.add_votable_fields('otype')
+
+# Query the object by name
+result_table = custom_simbad.query_object("M13")
+
+# Extract the object type string
+object_type = result_table['OTYPE'][0]
+print(f"The object type is: {object_type}")
+

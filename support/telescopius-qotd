@@ -1,0 +1,57 @@
+#!/usr/bin/python3
+
+import requests
+
+'''
+api_types[
+    /solar-system/times
+    /targets/search
+    /targets/highlights
+    /targets/lists
+    /targets/lists/{id}
+    /equipment/user
+    /weather/forecast
+    /quote-of-the-day/
+    /news/global
+    ]
+'''
+
+# Define API URL and version (v2.2 is the current active release)
+BASE_URL = "https://api.telescopius.com/v2.2"
+API_KEY = "4c4a21528fcfc7141bca5b3d6e8b60a4"
+
+# Build the required authorization headers
+headers = {
+    "Authorization": f"Key {API_KEY}",
+    "Accept": "application/json"
+}
+
+def get_quote_of_the_day():
+    """Fetches the Telescopius astronomical quote of the day."""
+    url = f"{BASE_URL}/targets/highlights"
+    
+    try:
+        response = requests.get(url, headers=headers)
+        
+        # Raise an exception for HTTP errors (401 Unauthorized, 404, etc.)
+        response.raise_for_status()
+        
+        # Parse and return JSON response
+        return response.json()
+        
+    except requests.exceptions.HTTPError as http_err:
+        print(f"HTTP error occurred: {http_err}")
+    except Exception as err:
+        print(f"An error occurred: {err}")
+    return None
+
+if __name__ == "__main__":
+    print("Connecting to Telescopius API...")
+    data = get_quote_of_the_day()
+    print(f"DIAG data: {data}")
+    
+    if data:
+        print("\n--- Quote of the Day ---")
+        print(f"\"{data.get('text')}\"")
+        print(f"— {data.get('author')}")
+

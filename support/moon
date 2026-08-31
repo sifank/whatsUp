@@ -1,0 +1,58 @@
+#!/usr/bin/python3
+
+from astropy.coordinates import AltAz, HADec, EarthLocation, get_body, solar_system_ephemeris
+from astropy.time import Time
+import astropy.units as u
+import numpy as np
+
+# 1. Define time and observation location (e.g., Lincoln Beach, OR)
+obs_time = Time('2026-06-07T04:30:00', scale='utc')
+loc = EarthLocation(lat=44.815 * u.deg, lon=-124.037 * u.deg, height=10 * u.m)
+
+# 2. Setup HADec and AltAz frames
+hadec_frame = HADec(obstime=obs_time, location=loc)
+altaz_frame = AltAz(obstime=obs_time, location=loc)
+
+# 3. Query Moon and Sun coordinates in base GCRS frame
+with solar_system_ephemeris.set('builtin'):
+    moon_gcrs = get_body('moon', obs_time, loc)
+    sun_gcrs = get_body('sun', obs_time, loc)
+
+# 4. Transform Moon to respective coordinate frames
+moon_hadec = moon_gcrs.transform_to(hadec_frame)
+moon_altaz = moon_gcrs.transform_to(altaz_frame)
+
+# 5. Extract Hour Angle (Hours from meridian transit) from HADec
+hours_from_meridian = moon_hadec.ha.hour
+if hours_from_meridian > 12:
+    hours_from_meridian -= 24
+
+# 6. Extract Alt/Az and calculate Zenith Angle explicitly (90 deg - altitude)
+altitude = moon_altaz.alt
+azimuth = moon_altaz.az
+zenith_angle = 90.0 * u.deg - altitude
+moon_dist = moon_altaz.distance
+
+# 7. Angular Size (Diameter in arcminutes)
+moon_radius_km = 1737.4 * u.km
+angular_size_rad = 2 * np.arctan(moon_radius_km / moon_dist)
+angular_size_arcmin = angular_size_rad.to(u.arcmin)
+
+# 8. Approximate Apparent Magnitude (Danjon/Meeus empirical formula)
+elongation = moon_gcrs.separation(sun_gcrs).deg
+phase_angle = np.arctan2(
+    sun_gcrs.distance * np.sin(np.radians(elongation)),
+    moon_gcrs.distance - sun_gcrs.distance * np.cos(np.radians(elongation))
+)
+# Extract the numeric floating-point value to prevent UnitConversionError
+v = np.degrees(phase_angle).value 
+magnitude = -12.73 + 0.026 * np.abs(v) + 4.0e-9 * (v**4)
+
+# 9. Output Results
+print(f"Altitude: {altitude:.2f}")
+print(f"Azimuth: {azimuth:.2f}")
+print(f"Zenith Angle: {zenith_angle:.2f}")
+print(f"Hours from Meridian (Transit): {hours_from_meridian:.2f} hrs")
+print(f"Angular Size: {angular_size_arcmin:.2f}")
+print(f"Approx Magnitude: {magnitude:.2f} mag")
+

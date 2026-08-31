@@ -1,0 +1,42 @@
+#!/usr/bin/python3
+# Program:	testGetSimbad
+
+from astroquery.simbad import Simbad
+
+# 1. Setup custom fields and query SIMBAD
+Simbad.add_votable_fields('ra', 'dec', 'V', 'dim', 'otype')
+targets = ["M31", "M45", "Sirius"]
+result_table = Simbad.query_objects(targets)
+
+# 2. Iterate through rows
+for row in result_table:
+    # Convert the row to a clean dict (columns are lowercase)
+    row_dict = dict(zip(result_table.colnames, row))
+    
+    # 3. Helper to clean masked values and byte strings safely
+    def clean_val(key):
+        val = row_dict.get(key)
+        # Handle missing or masked database values
+        if val.__class__.__name__ == 'MaskedConstant':
+            return None
+        # Convert byte strings like b'Sirius' into regular strings
+        if isinstance(val, bytes):
+            return val.decode('utf-8')
+        return val
+
+    # 4. Safely extract your variables using lowercase keys
+    main_id = clean_val('main_id')
+    ra      = clean_val('ra')
+    dec     = clean_val('dec')
+    dim = clean_val('dim')
+    otype = clean_val('otype')
+    v_mag   = clean_val('flux_v')  # The flux column returns as 'flux_v'
+    size_maj  = clean_val('galdim_majaxis')  # Major axis (usually in arcminutes)
+    size_min  = clean_val('galdim_minaxis')  # Minor axis (usually in arcminutes)
+    size_ang  = clean_val('galdim_angle')    # Position angle (degrees)
+
+
+    # 5. Insert directly into your DB table here
+    print(f"DB Entry -> Name: {main_id}, RA: {ra}, Dec: {dec}, V_Mag: {v_mag}, otype: {otype}")
+    print(f"            Size Major: {size_maj}, Size Minor: {size_min}, Angle: {size_ang}")
+

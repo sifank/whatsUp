@@ -1,0 +1,93 @@
+#!/usr/bin/python3
+# Program:	lookupSingleSimbad
+
+from astroquery.simbad import Simbad
+import sys
+import mysql.connector
+
+# Database Configuration
+mdb_config = {
+    'host': 'depoe',
+    'user': 'sifan',
+    'password': 'all4Sky',
+    'database': 'kahaleobs'
+}
+
+#--------------------------------------------------------
+# Open Database
+def openDB():
+    try:
+        conn = mysql.connector.connect(**mdb_config)
+        cursor = conn.cursor()
+    except mysql.connector.Error as err:
+        print(f"Database error: {err}")
+        print("Exiting ...")
+        sys.exit(1)
+
+    return conn, cursor
+
+#--------------------------------------------------------
+# Close Database
+def closeDB(conn, cursor):
+    conn.close()
+    cursor.close()
+    return
+
+# ===========================================
+def main():
+    # 1. Setup custom fields including size ("dim")
+    Simbad.add_votable_fields('ra', 'dec', 'V', 'dim')
+
+    # 2. Query a single target object
+    if len(sys.argv) !=2:
+            #print(f"You entered: {sys.argv[1]})")
+            print(f"Usage:  {sys.argv[0]} object")
+            sys.exit(1)
+
+    target = sys.argv[1]
+
+    result_table = Simbad.query_object(target)
+
+    # 3. Check if the object was actually found
+    if result_table is not None and len(result_table) > 0:
+        # Extract the first row and map it to a dictionary
+        first_row = result_table[0]
+        row_dict = dict(zip(result_table.colnames, first_row))
+
+        # Helper to clean masked values and byte strings safely
+        def clean_val(key):
+            val = row_dict.get(key)
+            if val.__class__.__name__ == 'MaskedConstant':
+                return None
+            if isinstance(val, bytes):
+                return val.decode('utf-8')
+            return val
+
+        # 4. Extract data fields
+        main_id   = clean_val('main_id')
+        cleanMain = " ".join(str(main_id).split())
+        ra        = clean_val('ra')
+        dec       = clean_val('dec')
+        v_mag     = clean_val('flux_v')
+        size_maj  = clean_val('galdim_majaxis')
+        size_min  = clean_val('galdim_minaxis')
+        size_ang  = clean_val('galdim_angle')
+
+        # 5. Insert single row into database
+        if str(v_mag) == "None":
+            print(f"{target} was None for mag")
+        else:
+            conn, cursor = openDB()
+            sql = f"UPDATE DScatalog set magnitude = {v_mag} where objectName = '{target}' "
+            print(sql)
+            try:
+                cursor.execute(sql)
+                conn.commit()
+            except mysql.connector.Error as err:
+                print(f"While added {target}")
+                print(f"Database error: {err}")
+
+            closeDB(conn, cursor)
+
+if __name__ == "__main__":
+    main()

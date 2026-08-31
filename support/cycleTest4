@@ -1,0 +1,2 @@
+while IFS= read -r line; do  ./test4-Sesame "$line"; done < "objectNotFound" > "lookupResults.txt"
+

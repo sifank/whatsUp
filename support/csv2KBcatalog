@@ -1,0 +1,89 @@
+#!/usr/bin/python3
+# Program:	csv2KBcatalog
+# Version:	20260716
+# Author:	Sifan
+# Desc:		reads csv file and inputs to KBcatalog db
+
+import sys, csv
+import mysql.connector
+from astroquery.simbad import Simbad
+import astropy.units as u
+
+# Database Configuration
+db_config = {
+    'host': 'depoe',
+    'user': 'sifan',
+    'password': 'all4Sky',
+    'database': 'kahaleobs'
+}
+
+#--------------------------------------------------------
+# Open Database
+def openDB():
+    try:
+        conn = mysql.connector.connect(**db_config)
+        cursor = conn.cursor()
+    except mysql.connector.Error as err:
+        print(f"Database error: {err}")
+        print("Exiting ...")
+        sys.exit(1)
+
+    return conn, cursor
+
+#--------------------------------------------------------
+# Close Database
+def closeDB(conn, cursor):
+    conn.close()
+    cursor.close()
+    return
+
+#--------------------------------------------------------
+def main():
+    conn, cursor = openDB()
+
+    # --- test that we have a csv file on the cmd line
+    if len(sys.argv) < 2:
+        print(f"Usage:  {sys.argv[0]} [Object Name]")
+        sys.exit(0)
+
+    csvFile = sys.argv[1]
+
+    with open(csvFile, mode='r', encoding='utf-8', newline='') as file:
+        # Create the reader object
+        csv_reader = csv.reader(file)
+
+        # Iterate over each row one by one
+        for row in csv_reader:
+            if row[2] == "\\N": row[2] = 255
+            if row[5] == "\\N": row[5] = ''
+            if row[6] == "\\N": row[6] = ''
+            if row[7] == "\\N": row[7] = ''
+
+            print(f"Object Name: {row[0]}, Common Name: {row[1]}, Object Type: {row[2]}, RA: {row[3]} deg, Dec: {row[4]} deg, Visual Magnitude: {row[5]}, Apparent Size: {row[6]}, Position Angle: {row[7]}")
+            print("=" * 50)
+
+            sql = f"INSERT INTO kahaleobs.KBcatalog set \
+                    objectName = \"{row[0]}\", \
+                    commonName = \"{row[1]}\", \
+                    type = \"{row[2]}\", \
+                    rightascension = \"{row[3]}\", \
+                    declination = \"{row[4]}\", \
+                    magnitude = \"{row[5]}\", \
+                    apSize = \"{row[6]}\", \
+                    PA = \"{row[7]}\", \
+                    imageLoc = \"\", \
+                    procFlag = \"Need\" \
+                    ;"
+
+            try:
+                cursor.execute(sql)
+                conn.commit()
+                #print(f"SQL: {sql}")
+            except mysql.connector.Error as err:
+                print(f"Database error: {err}")
+                print(f"While added {objectName}")
+
+        closeDB(conn, cursor)
+
+if __name__ == "__main__":
+    main()

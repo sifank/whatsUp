@@ -1,0 +1,32 @@
+Name:  IC5132 RA: 325.667534 Dec:          +66.168438 Type: 5
+Name:  NGC2361 RA: 109.5897 Dec:          -13.2130 Type: 5
+Sh2158 not found
+antnebula not found
+Name:  atomsforpeacegalaxy RA: 335.186533 Dec:          -24.678317 Type: 8
+barnard'sloop not found
+barnard'sstar not found
+Name:  bullet cluster RA: 104.631700 Dec:          -55.946500 Type: 14
+Name:  cartwheel galaxy RA: 9.421404 Dec:          -33.716309 Type: 8
+Name:  coma cluster RA: 194.953000 Dec:          +27.981000 Type: 14
+comastar cluster not found
+Name:  copeland's septet RA: 174.460417 Dec:          +21.985000 Type: 14
+Name:  egg nebula RA: 315.577784 Dec:          +36.693832 Type: 5
+Name:  einstein cross RA: 340.126129 Dec:          +3.358619 Type: 16
+Name:  eta carinae RA: 161.264849 Dec:          -59.684415 Type: 0
+Name:  fuorionis RA: 86.341131 Dec:          +9.069698 Type: 0
+Name:  heart RA: 332.491421 Dec:          +29.912920 Type: 8
+Name:  hoag's object RA: 229.310049 Dec:          +21.585538 Type: 8
+Name:  integralsign galaxy RA: 107.845578 Dec:          +71.836497 Type: 8
+Name:  keenan's system RA: 203.037083 Dec:          +62.733889 Type: 8
+Name:  leo1 RA: 152.117083 Dec:          +12.306389 Type: 8
+Name:  mayall's object RA: 165.974783 Dec:          +40.849981 Type: 8
+pcygni not found
+Name:  rrlyrae RA: 291.366410 Dec:          +42.784447 Type: 0
+Name:  sagdig RA: 292.495833 Dec:          -17.679000 Type: 8
+Name:  seyfert's sextet RA: 239.798624 Dec:          +20.757996 Type: 14
+Name:  stephan's quintet RA: 338.989583 Dec:          +33.960000 Type: 14
+Name:  tadpole galaxy RA: 241.516313 Dec:          +55.425482 Type: 8
+ttauri not found
+ursamajormovinggroup not found
+Name:  wild's triplet RA: 176.677500 Dec:          -3.841111 Type: 8
+Name:  wizard nebula RA: 341.88333333 Dec:          +58.04833333 Type: 5

@@ -1,0 +1,19 @@
+#!/usr/bin/python3
+# testing getting data from MAST
+
+from astropy.table import Table
+import numpy as np
+from astroquery.mast import Observations
+
+objName = "IC5132"
+
+result_table = Observations.query_object(objName, radius="0.2 deg")
+if len(result_table) > 0:
+    extracted_data = result_table[0]['s_ra', 's_dec', 'target_classification', 'obs_id']
+    print(f"Name:   {objName}")
+    print(f"RA:        {extracted_data['s_ra']}")
+    print(f"DEC:      {extracted_data['s_dec']}")
+    print(f"Type:     {extracted_data['target_classification']}")
+
+else:
+    print("No observations found for IC5132 in MAST.")

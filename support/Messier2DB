@@ -1,0 +1,71 @@
+#!/usr/bin/python3
+
+# Define the directory to search (change '.' to your target folder path)
+import os
+import re
+from pathlib import Path
+import mariadb  # or use pymysql
+
+# 1. Database Configuration
+db_config = {
+    "host": "localhost",
+    "user": "sifan",
+    "password": "all4Sky",
+    "database": "kahaleobs",
+    "port": 3306
+}
+
+# 2. File Directory Configuration
+directory = Path("/var/www/whatsUp/static/astroimages")
+
+# Pattern captures 'M' (with or without a space) and the file number
+file_pattern = re.compile(r"M\s*(\d+)", re.IGNORECASE)
+
+try:
+    # Connect to MariaDB
+    conn = mariadb.connect(**db_config)
+    cursor = conn.cursor()
+    print("Successfully connected to MariaDB.")
+
+    print(f"\n{'Original File':<30} | {'Fixed File':<20} | {'DB ObjectName':<15} | {'DB ImageLoc'}")
+    print("-" * 95)
+
+    # Scan the directory
+    for file in directory.iterdir():
+        if file.is_file():
+            filename = file.name
+
+            # Look at all .png files that contain 'M' and a number
+            match = file_pattern.search(filename)
+            if match and filename.lower().endswith('.png'):
+                file_number = match.group(1)
+
+                # Rebuild uniform formats
+                fixed_name = f"M {file_number}.png"
+                object_name = f"M {file_number}"
+                image_loc = f"{fixed_name}"
+
+                # Check if the file was already perfect or if it's being converted
+                status_flag = "[Perfect]" if filename == fixed_name else "[Needs Fix]"
+                #print(f"{filename:<30} | {fixed_name:<20} | {object_name:<15} | {image_loc} {status_flag}")
+
+                # Update MariaDB
+                query = f"UPDATE KBcatalog SET imageLoc = '{filename}' WHERE objectName = '{object_name}';"
+                print(f"SQL: {query}")
+                cursor.execute(query)
+
+                # UNCOMMENT below to physically rename the broken files on your drive
+                # if filename != fixed_name:
+                #     file.rename(file.with_name(fixed_name))
+
+    # Commit changes permanently
+    conn.commit()
+    print("\nDatabase update completed successfully for all files.")
+
+except mariadb.Error as e:
+    print(f"Error executing database script: {e}")
+
+finally:
+    if 'conn' in locals() and conn:
+        cursor.close()
+        conn.close()

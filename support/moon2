@@ -1,0 +1,47 @@
+#!/usr/bin/python3
+
+from datetime import datetime, timezone, UTC
+import ephem, math, sys, datetime
+from skyfield.api import wgs84, load, Star, Topos
+#from skyfield.magnitudelib import planetary_magnitude
+from astropy.coordinates import SkyCoord
+import astropy.units as u
+from astropy.time import Time
+
+visible_data = []
+
+def timeAt10():
+     local_now = datetime.datetime.now().astimezone()
+     local_11pm = datetime.datetime.combine(local_now.date(), datetime.time(22, 0))
+     local_11pm_aware = local_11pm.replace(tzinfo=local_now.tzinfo)
+     current_time_utc = local_11pm_aware.astimezone(datetime.timezone.utc)
+     return(current_time_utc)
+
+ts = load.timescale()
+eph = load('de421.bsp')
+earth, sun, moon = eph['earth'], eph['sun'], eph['moon']
+observer = earth + wgs84.latlon(44.815, -124.037, 10)
+t = ts.from_datetime(timeAt10())
+sun_pos = observer.at(t).observe(sun).apparent()
+moon_pos = observer.at(t).observe(moon).apparent()
+moon_alt, moon_az, _ = moon_pos.altaz()
+e_moon = earth.at(t).observe(moon)
+phase_angle = e_moon.phase_angle(sun).degrees
+moon_illumination = (1.0 + math.cos(math.radians(phase_angle))) / 2.0 * 100
+
+visible_data.append({"name": "Moon",
+            "common_name": "Moon",
+            "alt": round(float(moon_alt), 3),
+            "az": round(float(moon_az), 3),
+            "size": round(angular_size_arcmin, 1),
+            "mag": round(moon_illumination, 1),
+            "type": 3,
+            "exposure": 0.0,
+            "framing": " ",
+            "PA": round(phase_angle, 1) ,
+            "moon_sep": 0.0,
+            "priority": "Need",
+            "meridian": round(hours_from_meridian, 2),
+            "zenith_date": 0})
+print(f"Az: {moon_az}  Alt: {moon_alt}  PA: {phase_angle} Illumination: {moon_illumination}")
+

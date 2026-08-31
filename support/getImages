@@ -1,0 +1,72 @@
+#!/usr/bin/python3
+
+import csv
+import os
+import requests
+
+# Configuration
+CSV_FILE = "/tmp/whatsUpImages2"  # Replace with your CSV file name
+OUTPUT_FOLDER = "/var/www/whatsUp/astroimages"  # The folder to store images
+
+# 1. Create the destination folder if it doesn't exist
+os.makedirs(OUTPUT_FOLDER, exist_ok=True)
+
+# 2. Open and read the CSV file
+with open(CSV_FILE, mode="r", encoding="utf-8") as file:
+    csv_reader = csv.reader(file)
+
+    # Optional: Uncomment the line below if your CSV has a header row
+    # next(csv_reader)
+
+    for index, row in enumerate(csv_reader, start=1):
+        if not row:
+            continue
+
+        try:
+            # 3. Extract fields (Index 0 is 1st column, Index 1 is 2nd column)
+            custom_name = row[0].strip()
+            image_url = row[1].strip()
+
+            # Skip row if either the name or the URL field is blank
+            if not custom_name or not image_url:
+                print(f"Row {index}: Missing name or URL. Skipping.")
+                continue
+
+            # 4. Extract the original file extension (e.g., .jpg, .png) from the URL
+            # Splits by '?' to ignore tracking parameters, then extracts extension
+            clean_url_path = image_url.split("?")[0]
+            _, file_extension = os.path.splitext(clean_url_path)
+
+            # Fallback to .jpg if no extension is found in the URL
+            if not file_extension:
+                file_extension = ".jpg"
+
+            # 5. Build the clean, safe local file path
+            # Removes common illegal filename characters just in case
+            safe_name = "".join(
+                c for c in custom_name if c.isalnum() or c in (" ", "-", "_")
+            ).strip()
+            full_filename = f"{safe_name}{file_extension}"
+            file_path = os.path.join(OUTPUT_FOLDER, full_filename)
+
+            # 6. Fetch and save the image
+            print(f"Downloading '{full_filename}' from {image_url}...")
+            response = requests.get(image_url, timeout=10)
+
+            if response.status_code == 200:
+                with open(file_path, "wb") as img_file:
+                    img_file.write(response.content)
+            else:
+                print(
+                    f"Failed to download row {index}. Status code: {response.status_code}"
+                )
+
+        except IndexError:
+            print(
+                f"Row {index}: Error. Row must have both a name (1st) and URL (2nd) column."
+            )
+        except requests.exceptions.RequestException as e:
+            print(f"Row {index}: Connection error -> {e}")
+
+print("\nProcess finished!")
+

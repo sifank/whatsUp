@@ -1,0 +1,143 @@
+#!/usr/bin/python3
+# Program:	objectList2DB
+# Version:	20260702
+# Author:	Sifan
+# Desc:		looks up infor on object from Sinbad db (online)
+
+import sys
+import mysql.connector
+from astroquery.simbad import Simbad
+import astropy.units as u
+
+notFound = set()
+errFlag = False
+
+# Database Configuration
+db_config = {
+    'host': 'depoe',
+    'user': 'sifan',
+    'password': 'all4Sky',
+    'database': 'kahaleobs'
+}
+
+#--------------------------------------------------------
+# Open Database
+def openDB():
+    try:
+        conn = mysql.connector.connect(**db_config)
+        cursor = conn.cursor()
+    except mysql.connector.Error as err:
+        print(f"Database error: {err}")
+        print("Exiting ...")
+        sys.exit(1)
+
+    return conn, cursor
+
+#--------------------------------------------------------
+# Close Database
+def closeDB(conn, cursor):
+    conn.close()
+    cursor.close()
+    return
+
+#--------------------------------------------------------
+def get_object_data(target_name):
+    # Query the object by its identifier (e.g., 'NGC 2000')
+    result_table = Simbad.query_object(target_name)
+    
+    if result_table is not None:
+        # Extract desired fields
+        common_name = result_table['MAIN_ID'][0]
+        objType = result_table['OTYPE'][0]
+        ra_deg = result_table['RA_d'][0]
+        dec_deg = result_table['DEC_d'][0]
+        magnitude = result_table['FLUX_V'][0] # Visual magnitude
+        apparent_MaxSize = result_table['GALDIM_MAJAXIS'][0]
+        apparent_MinSize = result_table['GALDIM_MINAXIS'][0]
+        posAngle = result_table['GALDIM_ANGLE'][0]
+    else:
+        common_name = "Not Found"
+        ra_deg, dec_deg, magnitude, posAngle, apparent_MaxSize = 0
+
+    return(common_name, objType, ra_deg, dec_deg, magnitude, apparent_MaxSize, apparent_MaxSize, posAngle )
+
+#--------------------------------------------------------
+def main():
+    if len(sys.argv) !=2:
+        print(f"Usage:  {sys.argv[0]} listFileName")
+        sys.exit(1)
+
+    objectlist = sys.argv[1]
+    imageLoc = procFlag = "--"
+    conn, cursor = openDB()
+    # Add specific fields we want to extract
+    Simbad.add_votable_fields('ra(d)', 'dec(d)', 'flux(V)', 'dim', 'otype')
+
+    # --- test that we have a session date on the cmd line
+    #if len(sys.argv) < 2:
+        #print(f"Usage:  {sys.argv[0]} [Object Name]")
+        #sys.exit(0)
+
+    with open(objectlist, 'r') as file:
+        for line_num, line in enumerate(file, 1):
+            objectName = line.strip()
+
+            #objectName = sys.argv[1]
+            common_name = "--"
+
+            #print(f"Working on: {objectName}")
+            try:
+                common_name, objType, ra_deg, dec_deg, magnitude, apparent_MaxSize, apparent_MinSize, posAngle = get_object_data(objectName)
+                #print(f"DIAG: found? {common_name} {magnitude}")
+            except:
+                notFound.add(objectName)
+                continue
+
+            if common_name == "Not Found":
+                notFound.add(objectName)
+                continue
+
+            try:
+                if magnitude != "--": magnitude = f"{float(magnitude):<5.1f}"
+                if apparent_MaxSize != "--": apparent_MaxSize = f"{float(apparent_MaxSize):<5.1f}"
+            except:
+                notFound.add(objectName)
+                continue
+
+            print(f"Object Name: {objectName}, vMag: {magnitude}, apSize: {apparent_MaxSize")
+            #print(f"Common Name: {common_name}")
+            #print(f"Object Type: {objType}")
+            #print(f"RA: {ra_deg:.6f} degrees")
+            #print(f"Dec: {dec_deg:.6f} degrees")
+            #print(f"Visual Magnitude: {magnitude}")
+            #print(f"Position Angle: {posAngle}")
+            #print(f"Apparent Size: {apparent_MaxSize}")
+
+            sql = f"INSERT INTO kahaleobs.whatsUp set \
+                    objectName = \"{objectName}\", \
+                    commonName = \"{common_name}\", \
+                    type = \"{objType}\", \
+                    rightascension = \"{ra_deg}\", \
+                    declination = \"{dec_deg}\", \
+                    magnitude = \"{magnitude}\", \
+                    apSize = \"{apparent_MaxSize}\", \
+                    imageLoc = \"{imageLoc}\", \
+                    procFlag = \"{procFlag}\" \
+                    ;"
+
+            try:
+                cursor.execute(sql)
+                conn.commit()
+                pass
+            except mysql.connector.Error as err:
+                print(f"Database error: {err}")
+                print(f"While added {objectName}")
+
+    closeDB(conn, cursor)
+
+    print("\n======= Objects Not Found in DB ====")
+    for name in sorted(notFound):
+        print(f"{name}")
+
+if __name__ == "__main__":
+    main()

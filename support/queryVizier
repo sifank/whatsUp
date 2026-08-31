@@ -1,0 +1,25 @@
+#!/usr/bin/python3
+
+# pip install astroquery
+from astroquery.vizier import Vizier
+
+# Target the official Dreyer Index Catalogue on VizieR
+v = Vizier(columns=['IC', 'RA2000', 'DE2000', 'Type'])
+
+# Query specifically for IC 5132
+result = v.query_constraints(catalog="VII/118/ic", IC="5132")
+
+if result:
+    table = result[0]
+    # Extract row values
+    ra = table['RA2000'][0]
+    dec = table['DE2000'][0]
+    obj_type = table['Type'][0]
+    
+    print(f"Object:   IC 5132")
+    print(f"RA:       {ra}")
+    print(f"Dec:      {dec}")
+    print(f"Type:     {obj_type}")
+else:
+    print("Object not found in VizieR catalog VII/118.")
+

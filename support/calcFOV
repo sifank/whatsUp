@@ -1,0 +1,99 @@
+#!/usr/bin/python3
+# Program:	calcFOV
+# Version:	20260714
+# Author:	Sifan
+# Desc:		asks for telescope, reducer and camera and calc FOV
+import math, sys
+
+# Equipment selector choices
+EQUIPFOV = {
+    1: ("C14 1 ASI294", 16.8, 20.4),
+    2: ("C14 .7 ASI294", 24.1, 16.4),
+    3: ('ES152 1 ASI2600', 81.6, 54.0),
+    4: ("C14 .2 ASI294", 162, 111),
+    5: ('Dwarf3 T', 174.0, 102.0),
+    6: ('Dwarf3 W', 2700.0, 1500.0)
+}
+
+# name: focal length
+TELESCOPE = {
+    "C14": 3910,
+    "C11": 2800,
+    "ES152": 988,
+    "Dwarf3T": 150,
+    "Dwarf3W": 6.7
+    }
+
+# name: (pixel_size, widthpx, heightpx)
+CAMERAS = {
+    "ASI294": (4.6, 4144, 2822),
+    "ASI1600": (3.8, 4656, 3520),
+    "ASI2600": (3.76, 6248, 4172),
+    "Dwarf3T": (2.0, 3840, 2160),
+    "Dwarf3W": (2.9, 1920, 1080)
+    }
+
+def calculate_sensor_dimensions(pixel_size_um, width_px, height_px):
+    """
+    Converts sensor pixel dimensions to physical dimensions in millimeters.
+    """
+    width_mm = (pixel_size_um * width_px) / 1000.0
+    height_mm = (pixel_size_um * height_px) / 1000.0
+    return width_mm, height_mm
+
+def calculate_fov(tele_fl, reducer_factor, sensor_width_mm, sensor_height_mm):
+    """
+    Calculates the Field of View (FOV) in degrees for a given setup.
+    """
+    # Calculate effective focal length
+    eff_fl = tele_fl * reducer_factor
+    
+    # Calculate FOV using the arctangent geometric formula
+    fov_width_deg = 2 * math.atan(sensor_width_mm / (2 * eff_fl)) * (180 / math.pi)
+    fov_height_deg = 2 * math.atan(sensor_height_mm / (2 * eff_fl)) * (180 / math.pi)
+    
+    return fov_width_deg, fov_height_deg
+
+#--------------------------------------------------------
+def main():
+    if len(sys.argv) !=4:
+        print(f"Usage:  {sys.argv[0]} telescope reducer camera")
+        print(f"Telescopes: {list(TELESCOPE)}")
+        print("Reducer: 0.0 - 2")
+        print(f"Cameras: {list(CAMERAS)}")
+        sys.exit(1)
+
+    telescope = sys.argv[1]
+    if telescope not in TELESCOPE:
+        print(f"Error: telescope must be one of: {list(TELESCOPE)}")
+        sys.exit(1)
+    reducer = float(sys.argv[2])
+    if reducer < 0.0 or reducer > 2.0:
+        print("Reducer must be between 0.0 and 2.0")
+        sys.exit(1)
+    camera = sys.argv[3]
+    if camera not in CAMERAS:
+        print(f"Error: camera must be one of: {list(CAMERAS)}")
+        sys.exit(1)
+
+    print(f"Entered:  {telescope} {reducer} {camera}")
+
+    # --- Example Configuration ---
+    telescope_focal_length_mm = 3910.0    # C14
+    # 1. Get physical sensor size
+    sensor_w_mm, sensor_h_mm = calculate_sensor_dimensions(
+        CAMERAS[camera][0], CAMERAS[camera][1], CAMERAS[camera][2])
+
+    # 2. Compute FOV
+    fov_width, fov_height = calculate_fov(
+        TELESCOPE[telescope], reducer, sensor_w_mm, sensor_h_mm
+    )
+
+    # 3. Print Results
+    print(f"Effective Focal Length: {TELESCOPE[telescope] * reducer:.1f} mm")
+    print(f"Calculated FOV: {fov_width:.2f}° x {fov_height:.2f}°")
+    print(f"FOV in arcminutes: {fov_width * 60:.1f}' x {fov_height * 60:.1f}'")
+
+
+if __name__ == "__main__":
+    main()

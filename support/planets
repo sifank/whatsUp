@@ -1,0 +1,53 @@
+#!/usr/bin/python3
+from skyfield.api import load, wgs84, Topos
+from skyfield.magnitudelib import planetary_magnitude
+import numpy as np
+
+# Load timescale and planetary ephemeris
+ts = load.timescale()
+t = ts.now()  # or ts.utc(2026, 7, 24, 18, 39)
+eph = load('de421.bsp')
+
+earth = eph['earth']
+observer = earth + wgs84.latlon(44.815, -124.041)
+
+# Target planet (e.g., Mars)
+for planet_name in ['mercury barycenter', 'venus barycenter', 'mars barycenter', 'jupiter barycenter', 'saturn barycenter', 'uranus barycenter', 'neptune barycenter']:
+    planet = eph[planet_name]
+
+    # Compute apparent position and alt/az
+    astrometric = observer.at(t).observe(planet)
+    apparent = astrometric.apparent()
+    alt, az, distance = apparent.altaz()
+
+    # Apparent magnitude
+    mag = planetary_magnitude(astrometric)
+
+    # Apparent angular size in arcseconds
+    # (approximate angular diameter formula: size_at_1_au / distance_in_au)
+    # Standard radii values in km or angular size routines can be applied here
+    au_km = 149597870.7
+    planet_radius_km = {
+        'mercury barycenter': 2439.7, 'venus barycenter': 6051.8, 'mars barycenter': 3389.5, 'jupiter barycenter': 69911.0, 'saturn barycenter': 58232.0, 'uranus barycenter': 25362.0, 'neptune barycenter': 24622.0
+    }[planet_name]
+    angular_size_arcsec = 2.0 * np.arctan(planet_radius_km / (distance.au * au_km)) * 206264.806
+
+    # Hours before or after meridian (Hour Angle calculation)
+    # Local Sidereal Time minus Right Ascension gives Hour Angle (HA)
+    _, ra, _ = apparent.radec()
+    lst = observer.to_scalars(t).apparent().radec()[0] if hasattr(observer, 'to_scalars') else apparent.hadec()[0] # simplified HA extraction
+    # Alternatively use built-in .hadec() for hour angle
+    ha, _, _ = observer.at(t).observe(planet).apparent().hadec()
+    #_, _, _, ha, _, _ = observer.at(t).observe(planet).apparent().hadec()
+    hours_from_meridian = ha.hours
+
+    alt_decimal = alt.degrees
+    az_decimal = az.degrees
+
+    print(f"Planet: {planet_name.capitalize()}")
+    print(f"Altitude: {alt_decimal:.4f}°")
+    print(f"Azimuth: {az_decimal:.4f}°")
+    print(f"Apparent Magnitude: {mag:.2f}")
+    print(f"Apparent Size: {angular_size_arcsec:.2f} arcseconds")
+    print(f"Hours from Meridian: {hours_from_meridian:.2f} hours (Negative = East/Before, Positive = West/After)")
+

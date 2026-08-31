@@ -1,0 +1,51 @@
+#!/usr/bin/python
+
+API_KEY = "4c4a21528fcfc7141bca5b3d6e8b60a4"
+
+import json
+import pandas as pd
+import requests
+
+# Revert to the official OpenAPI specification server path
+BASE_URL = "https://api.telescopius.com/v2.2"
+
+headers = {
+    "Authorization": f"Key {API_KEY}",
+    "Accept": "application/json"  # Forces the server to explicitly communicate in JSON
+}
+
+# Use the precise ID tag to avoid whitespace route failures on the server side
+params = {"query": "M42"}
+
+response = requests.get(f"{BASE_URL}/targets/search", headers=headers, params=params)
+
+# Safe structural debugging block to prevent unhandled app crashes
+try:
+    if response.status_code == 200:
+        api_data = response.json()
+        
+        # Check if the returned structure is a list or dictionary
+        targets_list = api_data.get("targets", api_data) if isinstance(api_data, dict) else api_data
+
+        if isinstance(targets_list, list) and len(targets_list) > 0:
+            processed_targets = []
+            for target in targets_list:
+                item = target.copy()
+                if "alternative_names" in item and isinstance(item["alternative_names"], list):
+                    item["alternative_names"] = ", ".join(item["alternative_names"])
+                processed_targets.append(item)
+
+            df = pd.DataFrame(processed_targets)
+            df.to_csv("telescopius_target.csv", index=False)
+            print("Successfully written target data to csv!")
+        else:
+            print("The API did not return any list entries. Raw data:", api_data)
+            
+    else:
+        print(f"Server Error Status: {response.status_code}")
+        print("Raw Content Text From Server:\n", response.text)
+
+except requests.exceptions.JSONDecodeError:
+    print("Failed to decode response as JSON. The endpoint returned an HTML/Text response instead.")
+    print("Raw Content Text From Server:\n", response.text)
+

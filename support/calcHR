@@ -1,0 +1,91 @@
+#!/usr/bin/python3
+
+#from datetime import datetime, timezone
+import mysql.connector, os
+from datetime import datetime, timezone, UTC
+import ephem, math, sys
+#import datetime
+import matplotlib.pyplot as plt
+import numpy as np
+from skyfield.api import wgs84, load, Star, Topos
+from skyfield import almanac
+from skyfield.magnitudelib import planetary_magnitude
+from astropy.coordinates import SkyCoord
+import astropy.units as u
+from astropy.time import Time
+import urllib.parse, socket
+import requests
+from telescopius import (
+    TelescopiusClient,
+    TelescopiusError,
+    TelescopiusAuthError,
+    TelescopiusBadRequestError,
+    TelescopiusRateLimitError,
+    TelescopiusNotFoundError,
+    TelescopiusNetworkError,
+)
+
+def calculate_ha_hrs_mins(ra_deg, longitude_deg, dt_utc=None):
+    """Calculates Hour Angle (HA) and returns it formatted as hours and minutes."""
+    if dt_utc is None:
+        dt_utc = datetime.now(timezone.utc)
+
+    # Extract UTC date and time components
+    year, month, day = dt_utc.year, dt_utc.month, dt_utc.day
+    hour = dt_utc.hour + dt_utc.minute / 60.0 + dt_utc.second / 3600.0
+
+    if month <= 2:
+        year -= 1
+        month += 12
+
+    # Calculate Julian Date
+    A = int(year / 100)
+    B = 2 - A + int(A / 4)
+    jd = int(365.25 * (year + 4716)) + int(30.6001 * (month + 1)) + day + B - 1524.5 + hour / 24.0
+
+    # Centuries from J2000.0
+    d = jd - 2451545.0
+    t = d / 36525.0
+
+    # Greenwich Sidereal Time (GMST) in degrees
+    gmst = (280.46061837 + 360.98564736629 * d + 0.000387933 * t**2 - (t**3) / 38710000.0) % 360.0
+
+    # Local Sidereal Time (LST) in degrees
+    lst_deg = (gmst + longitude_deg) % 360.0
+
+    # Hour Angle (HA = LST - RA) in degrees
+    ha_deg = (lst_deg - ra_deg) % 360.0
+
+    # Normalize HA to range from -180 to +180 degrees
+    if ha_deg > 180.0:
+        ha_deg -= 360.0
+
+    # Convert HA from degrees to total hours (15 degrees = 1 hour)
+    ha_hours_total = ha_deg / 15.0
+
+    # Extract hours and minutes
+    is_negative = ha_hours_total < 0
+    abs_hours = abs(ha_hours_total)
+
+    hours = int(abs_hours)
+    minutes = int(round((abs_hours - hours) * 60))
+
+    # Handle minute overflow during rounding (e.g., 60m becomes +1h)
+    if minutes == 60:
+        hours += 1
+        minutes = 0
+
+    # Apply negative sign back if needed
+    if is_negative:
+        hours = -hours
+        if hours == 0:
+            return f"-0h {minutes}m"
+
+    return f"{hours}h {minutes}m"
+
+# Inputs for current location (Lincoln Beach, OR)
+lon_lincoln_beach = -124.0538
+ra_input_deg = 292.68
+
+ha_formatted = calculate_ha_hrs_mins(ra_input_deg, lon_lincoln_beach)
+print(f"Hour Angle (HA): {ha_formatted}")

@@ -1,0 +1,86 @@
+#!/usr/bin/python3
+
+from astropy.coordinates import SkyCoord, EarthLocation
+from astropy.time import Time
+import astropy.units as u
+import mysql.connector
+import sys
+
+#------------------------------------------------------------------------------------------------------------
+# Database Configuration
+db_config = {
+    'host': 'depoe',
+    'user': 'sifan',
+    'password': 'all4Sky',
+    'database': 'kahaleobs'
+}
+
+#--------------------------------------------------------
+# Opens the whatsUp database
+def openDB():
+    try:
+        conn = mysql.connector.connect(**db_config)
+        cursor = conn.cursor()
+    except mysql.connector.Error as err:
+        print(f"Database error: {err}")
+        print("Exiting ...")
+        sys.exit(1)
+
+    return conn, cursor
+
+#--------------------------------------------------------
+# Closes the databas
+def closeDB(conn, cursor):
+    conn.close()
+    cursor.close()
+    return
+
+# 1. Define Observer Location (e.g., Lincoln Beach, OR)
+obs_lat = 44.8143 * u.deg
+obs_lon = -124.0381 * u.deg
+location = EarthLocation(lat=obs_lat, lon=obs_lon, height=0 * u.m)
+
+# 2. Define Local Time and convert to UTC
+# Using current target time: July 1, 2026, at 3:11 PM Local Time (PDT is UTC-7)
+local_time = "2026-07-01 15:11:00"
+time_utc = Time(local_time) + 7 * u.hour 
+print(f"time_utc is {type(time_utc)}")
+
+# 3. Retrieve M13 coordinates
+#m13 = SkyCoord.from_name("M13")
+conn, cursor = openDB()
+sql = "SELECT * FROM whatsUp where objectName = \"M13\" "
+try:
+    cursor.execute(sql)
+    row = cursor.fetchone()
+
+except mysql.connector.Error as err:
+    print(f"Database error: {err}")
+    sys.exit(1)
+
+index, name, common_name, obj_type, objra, objdec, mag, size, image, flag = row
+
+objCoord = SkyCoord(ra=objra* u.deg * 15, dec=objdec*u.deg)
+
+# 4. Calculate Hour Angle
+lst = time_utc.sidereal_time('mean', longitude=location.lon)
+
+hour_angle = (lst - objCoord.ra).wrap_at(12 * u.hour)
+
+# 5. Extract values
+deg_from_meridian = abs(hour_angle.degree)
+ha_hours = hour_angle.hour
+abs_ha = abs(ha_hours)
+
+# Format time components
+hours = int(abs_ha)
+minutes = int((abs_ha - hours) * 60)
+seconds = int(((abs_ha - hours) * 60 - minutes) * 60)
+
+# Determine direction
+direction = "West (Past Meridian)" if ha_hours > 0 else "East (Before Meridian)"
+
+# 6. Print results
+print(f"Degrees from meridian: {deg_from_meridian:.2f}°")
+print(f"Time from meridian:    {hours}h {minutes}m {seconds}s ({direction})")
+print(f"Time: {ha_hours} hrs")

@@ -1,0 +1,208 @@
+#!/usr/bin/python3
+# Program:	messier2eb
+# Version:	20260630
+# Author:	Sifan
+# Desc:		convert messier table to db
+
+import sys
+import mysql.connector
+
+DEBUG = "False"
+
+# Database Configuration
+db_config = {
+    'host': 'depoe',
+    'user': 'sifan',
+    'password': 'all4Sky',
+    'database': 'kahaleobs'
+}
+
+#--------------------------------------------------------
+# Diag printout if DEBUG is true
+def debug(msg):
+    if DEBUG == "True":
+        print(f"DIAG {msg}")
+
+    return
+
+#--------------------------------------------------------
+# Open Database
+def openDB():
+    try:
+        conn = mysql.connector.connect(**db_config)
+        cursor = conn.cursor()
+    except mysql.connector.Error as err:
+        print(f"Database error: {err}")
+        print("Exiting ...")
+        sys.exit(1)
+
+    return conn, cursor
+
+#--------------------------------------------------------
+# Close Database
+def closeDB(conn, cursor):
+    conn.close()
+    cursor.close()
+    return
+
+# Complete Messier Catalog Data Map
+# Format: "Name": (RA_Hours, Dec_Degrees, "Common Name", Size_Arcmin, "Type", Apparent_Magnitude)
+MESSIER_CATALOG = {
+    "NGC6946": (20.581, 60.154, "Fireworks Galaxy", 11.5, "Galaxy", 8.9),
+    "M1":   (5.5755,   22.0145,  "Crab Nebula", 6.0, "Nebula", 8.4),
+    "M2":   (21.5583, -0.8239,   "Globular Cluster", 16.0, "Globular", 6.5),
+    "M3":   (13.7033,  28.3775,  "Globular Cluster", 18.0, "Globular", 6.2),
+    "M4":   (16.3933, -26.5258,  "Globular Cluster", 36.0, "Globular", 5.9),
+    "M5":   (15.3100,  2.0811,   "Globular Cluster", 23.0, "Globular", 5.6),
+    "M6":   (17.6683, -32.2517,  "Butterfly Cluster", 25.0, "Open Cluster", 4.2),
+    "M7":   (17.8967, -34.8233,  "Ptolemy Cluster", 80.0, "Open Cluster", 3.3),
+    "M8":   (18.0642, -24.3828,  "Lagoon Nebula", 90.0, "Nebula", 6.0),
+    "M9":   (17.3183, -18.5161,  "Globular Cluster", 12.0, "Globular", 7.7),
+    "M10":  (16.9517, -4.1003,   "Globular Cluster", 20.0, "Globular", 6.6),
+    "M11":  (18.8517, -6.2731,   "Wild Duck Cluster", 14.0, "Open Cluster", 5.8),
+    "M12":  (16.7867, -1.9486,   "Globular Cluster", 16.0, "Globular", 6.7),
+    "M13":  (16.6947,  36.4603,  "Hercules Cluster", 20.0, "Globular", 5.8),
+    "M14":  (17.6267, -3.2486,   "Globular Cluster", 11.0, "Globular", 7.6),
+    "M15":  (21.5000,  12.1672,  "Pegasus Cluster", 18.0, "Globular", 6.2),
+    "M16":  (18.3144, -13.7983,  "Eagle Nebula", 7.0, "Nebula", 6.0),
+    "M17":  (18.3467, -16.1711,  "Omega Nebula", 11.0, "Nebula", 6.0),
+    "M18":  (18.3333, -17.1333,  "Open Cluster", 9.0, "Open Cluster", 7.5),
+    "M19":  (17.0433, -26.2683,  "Globular Cluster", 17.0, "Globular", 6.8),
+    "M20":  (18.0431, -23.0303,  "Trifid Nebula", 28.0, "Nebula", 6.3),
+    "M21":  (18.0767, -22.5000,  "Open Cluster", 13.0, "Open Cluster", 6.5),
+    "M22":  (18.6067, -23.9042,  "Sagittarius Cluster", 32.0, "Globular", 5.1),
+    "M23":  (17.9467, -18.9833,  "Open Cluster", 27.0, "Open Cluster", 6.9),
+    "M24":  (18.2817, -18.4217,  "Sagittarius Cloud", 90.0, "Open Cluster", 4.6),
+    "M25":  (18.5267, -19.1167,  "Open Cluster", 32.0, "Open Cluster", 4.6),
+    "M26":  (18.7533, -9.3833,   "Open Cluster", 15.0, "Open Cluster", 8.0),
+    "M27":  (19.9939,  22.7211,  "Dumbbell Nebula", 8.0, "Planetary", 7.5),
+    "M28":  (18.4083, -24.8711,  "Globular Cluster", 11.0, "Globular", 6.8),
+    "M29":  (20.3983,  38.5233,  "Open Cluster", 7.0, "Open Cluster", 7.1),
+    "M30":  (21.6667, -23.1786,  "Globular Cluster", 12.0, "Globular", 7.2),
+    "M31":  (0.7122,   41.2692,  "Andromeda Galaxy", 190.0, "Galaxy", 3.4),
+    "M32":  (0.7139,   40.8647,  "Andromeda Sat.", 8.0, "Galaxy", 8.1),
+    "M33":  (1.5644,   30.6602,  "Triangulum Galaxy", 73.0, "Galaxy", 5.7),
+    "M34":  (2.7017,   42.8667,  "Open Cluster", 35.0, "Open Cluster", 5.5),
+    "M35":  (6.1483,   24.3333,  "Open Cluster", 28.0, "Open Cluster", 5.3),
+    "M36":  (5.6017,   34.1333,  "Open Cluster", 12.0, "Open Cluster", 6.3),
+    "M37":  (5.8733,   32.5500,  "Open Cluster", 24.0, "Open Cluster", 6.2),
+    "M38":  (5.4783,   35.8550,  "Star Cluster", 21.0, "Open Cluster", 7.4),
+    "M39":  (21.5367,  48.4333,  "Open Cluster", 32.0, "Open Cluster", 4.6),
+    "M40":  (12.3700,  58.0833,  "Winnecke 4", 0.8, "Open Cluster", 8.4),
+    "M41":  (6.7833,  -20.7333,  "Open Cluster", 38.0, "Open Cluster", 4.5),
+    "M42":  (5.5881,  -5.3911,   "Orion Nebula", 65.0, "Nebula", 4.0),
+    "M43":  (5.5933,  -5.2667,   "De Mairan's Nebula", 20.0, "Nebula", 9.0),
+    "M44":  (8.6672,   19.6700,  "Beehive Cluster", 95.0, "Open Cluster", 3.7),
+    "M45":  (3.7836,   24.1000,  "Pleiades", 110.0, "Open Cluster", 1.6),
+    "M46":  (7.6967,  -14.8167,  "Open Cluster", 27.0, "Open Cluster", 6.0),
+    "M47":  (7.6100,  -14.5000,  "Open Cluster", 30.0, "Open Cluster", 4.4),
+    "M48":  (8.2300,  -5.7500,   "Open Cluster", 54.0, "Open Cluster", 5.5),
+    "M49":  (12.4967,  8.0017,   "Elliptical Galaxy", 10.0, "Galaxy", 8.4),
+    "M50":  (7.0400,  -8.3333,   "Open Cluster", 16.0, "Open Cluster", 5.9),
+    "M51":  (13.4981,  47.1953,  "Whirlpool Galaxy", 11.0, "Galaxy", 8.4),
+    "M52":  (23.4033,  61.5933,  "Open Cluster", 13.0, "Open Cluster", 5.0),
+    "M53":  (13.2133,  18.1681,  "Globular Cluster", 13.0, "Globular", 7.6),
+    "M54":  (18.9183, -30.4786,  "Extragalactic Glob", 12.0, "Globular", 7.6),
+    "M55":  (19.6667, -30.9633,  "Globular Cluster", 19.0, "Globular", 6.3),
+    "M56":  (19.2767,  30.1847,  "Globular Cluster", 8.8, "Globular", 8.3),
+    "M57":  (18.8931,  33.0292,  "Ring Nebula", 1.4, "Planetary", 8.8),
+    "M58":  (12.6283,  11.8183,  "Barred Spiral", 6.0, "Galaxy", 9.7),
+    "M59":  (12.7017,  11.6467,  "Elliptical Galaxy", 5.0, "Galaxy", 9.6),
+    "M60":  (12.7283,  11.5517,  "Elliptical Galaxy", 7.0, "Galaxy", 8.8),
+    "M61":  (12.3650,  4.4714,   "Spiral Galaxy", 6.0, "Galaxy", 9.7),
+    "M62":  (17.0200, -30.1125,  "Globular Cluster", 15.0, "Globular", 6.5),
+    "M63":  (13.2636,  42.0292,  "Sunflower Galaxy", 12.0, "Galaxy", 8.6),
+    "M64":  (12.9461,  21.6828,  "Black Eye Galaxy", 10.0, "Galaxy", 8.5),
+    "M65":  (11.3150,  13.0922,  "Leo Triplet", 9.0, "Galaxy", 9.3),
+    "M66":  (11.3375,  12.9914,  "Leo Triplet", 9.0, "Galaxy", 8.9),
+    "M67":  (8.8550,   11.8167,  "Open Cluster", 30.0, "Open Cluster", 6.1),
+    "M68":  (12.6583, -26.7433,  "Globular Cluster", 11.0, "Globular", 7.8),
+    "M69":  (18.5233, -32.3481,  "Globular Cluster", 9.8, "Globular", 7.6),
+    "M70":  (18.7217, -32.2922,  "Globular Cluster", 8.0, "Globular", 7.9),
+    "M71":  (19.9000,  18.7800,  "Globular Cluster", 7.2, "Globular", 6.1),
+    "M72":  (20.8917, -12.5372,  "Globular Cluster", 6.6, "Globular", 9.3),
+    "M73":  (20.9833, -12.6333,  "Asterism", 2.8, "Open Cluster", 9.0),
+    "M74":  (1.6117,   15.7831,  "Phantom Galaxy", 10.0, "Galaxy", 9.4),
+    "M75":  (20.1017, -21.9222,  "Globular Cluster", 6.8, "Globular", 8.5),
+    "M76":  (1.7067,   51.5750,  "Little Dumbbell", 2.7, "Planetary", 10.1),
+    "M77":  (2.7111,  -0.0133,   "Cetus A", 7.0, "Galaxy", 8.9),
+    "M78":  (5.7783,   0.0783,   "Reflection Nebula", 8.0, "Nebula", 8.3),
+    "M79":  (5.4083,  -24.5244,  "Globular Cluster", 8.7, "Globular", 7.7),
+    "M80":  (16.2850, -22.9761,  "Globular Cluster", 10.0, "Globular", 7.3),
+    "M81":  (9.9264,   69.0653,  "Bode's Galaxy", 26.0, "Galaxy", 6.9),
+    "M82":  (9.9312,   69.6797,  "Cigar Galaxy", 11.0, "Galaxy", 8.4),
+    "M83":  (13.6167, -29.8658,  "Southern Pinwheel", 12.0, "Galaxy", 7.5),
+    "M84":  (12.4183,  12.8864,  "Lenticular Galaxy", 6.5, "Galaxy", 9.1),
+    "M85":  (12.4233,  18.1900,  "Lenticular Galaxy", 7.1, "Galaxy", 9.1),
+    "M86":  (12.4367,  12.9464,  "Lenticular Galaxy", 8.9, "Galaxy", 8.9),
+    "M87":  (12.5139,  12.3911,  "Virgo A", 7.2, "Galaxy", 8.6),
+    "M88":  (12.5333,  14.4200,  "Spiral Galaxy", 7.0, "Galaxy", 9.6),
+    "M89":  (12.5933,  12.5550,  "Elliptical Galaxy", 5.0, "Galaxy", 9.8),
+    "M90":  (12.6133,  13.1611,  "Spiral Galaxy", 9.5, "Galaxy", 9.5),
+    "M91":  (12.5900,  14.4964,  "Barred Spiral", 5.4, "Galaxy", 10.2),
+    "M92":  (17.2856,  43.1358,  "Globular Cluster", 14.0, "Globular", 6.4),
+    "M93":  (7.7433,  -23.8533,  "Open Cluster", 22.0, "Open Cluster", 6.0),
+    "M94":  (12.8472,  41.1203,  "Croc's Eye Galaxy", 11.0, "Galaxy", 8.2),
+    "M95":  (10.7333,  11.7036,  "Barred Spiral", 7.3, "Galaxy", 9.7),
+    "M96":  (10.7781,  11.8197,  "Spiral Galaxy", 7.8, "Galaxy", 9.2),
+    "M97":  (11.2467,  55.0192,  "Owl Nebula", 3.4, "Planetary", 9.9),
+    "M98":  (12.2300,  14.9011,  "Spiral Galaxy", 9.8, "Galaxy", 10.1),
+    "M99":  (12.3133,  14.4181,  "Comet Galaxy", 5.4, "Galaxy", 9.9),
+    "M100": (12.3811,  15.8239,  "Grand Design Sp.", 7.4, "Galaxy", 9.3),
+    "M101": (14.0533,  54.3489,  "Pinwheel Galaxy", 22.0, "Galaxy", 7.9),
+    "M102": (15.1017,  55.7633,  "Spindle Galaxy", 5.2, "Galaxy", 9.9),
+    "M103": (1.5533,   60.7000,  "Open Cluster", 6.0, "Open Cluster", 7.4),
+    "M104": (12.6664, -11.6214,  "Sombrero Galaxy", 8.6, "Galaxy", 8.0),
+    "M105": (10.7964,  12.5817,  "Elliptical Galaxy", 5.4, "Galaxy", 9.3),
+    "M106": (12.3164,  47.3028,  "Spiral Galaxy", 18.0, "Galaxy", 8.4),
+    "M107": (16.5417, -13.0536,  "Globular Cluster", 13.0, "Globular", 7.9),
+    "M108": (11.1917,  55.6731,  "Surfboard Galaxy", 8.6, "Galaxy", 10.0),
+    "M109": (11.9600,  53.3744,  "Barred Spiral", 7.5, "Galaxy", 9.8),
+    "M110": (0.6733,   41.6853,  "Andromeda Sat.", 21.0, "Galaxy", 8.1)
+}
+
+def main():
+
+    conn, cursor = openDB()
+    # parse through Messier table
+    imageLoc = procFlag = "--"
+    for objectName, data in MESSIER_CATALOG.items():
+        rightascension, declination, commonName, apSize, obj_type, magnitude = data
+
+        debug(f"\
+{objectName:<10} \
+{commonName:<20} \
+{rightascension:>6.1f}° \
+{declination:>6.1f}°  \
+{magnitude:>6.2f} \
+{apSize:>6.2f} \
+{imageLoc:>20} \
+{procFlag:>10}")
+
+        sql = f"INSERT INTO kahaleobs.whatsUp set \
+            objectName = \"{objectName}\", \
+            commonName = \"{commonName}\", \
+            rightascension = \"{rightascension}\", \
+            declination = \"{declination}\", \
+            magnitude = \"{magnitude}\", \
+            apSize = \"{apSize}\", \
+            imageLoc = \"{imageLoc}\", \
+            procFlag = \"{procFlag}\" \
+            ;"
+
+
+        sql = f"UPDATE whatsUp set type = \"{obj_type}\" where objectName = \"{objectName}\""
+
+        debug(f"DIAG sql: {sql}")
+
+        try:
+            cursor.execute(sql)
+            conn.commit()
+        except mysql.connector.Error as err:
+            print(f"Database error: {err}")
+            print(f"While added {objectName}")
+
+    closeDB(conn, cursor)
+                    
+if __name__ == "__main__":
+    main()

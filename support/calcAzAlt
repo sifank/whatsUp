@@ -1,0 +1,22 @@
+#!/usr/bin/python3
+
+from astropy.coordinates import AltAz, EarthLocation, SkyCoord
+from astropy.time import Time
+import astropy.units as u
+
+# 1. Define observer location (e.g., Lincoln Beach, OR)
+location = EarthLocation(lat = 44.8155 * u.deg, lon = -124.0418 * u.deg, height = 10 * u.m)
+
+# 2. Get current time (UTC)
+obstime = Time.now()
+
+# 3. Define target RA and Dec (e.g., Vega: RA = 279.2347 deg, Dec = +38.7837 deg)
+coord = SkyCoord(ra = 283.396 * u.deg, dec = 33.0286 * u.deg, frame = 'icrs')
+
+# 4. Transform to AltAz frame for the given time and location
+altaz_frame = AltAz(obstime = obstime, location = location)
+altaz_coord = coord.transform_to(altaz_frame)
+
+print(f"Altitude: {altaz_coord.alt.deg:.2f}°")
+print(f"Azimuth:  {altaz_coord.az.deg:.2f}°")
+

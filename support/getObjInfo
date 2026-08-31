@@ -1,0 +1,37 @@
+#!/usr/bin/python3
+# Program:	getObjInfo
+# Version:	20260715
+# Author:	Sifan
+# Desc:		gets object infor from simbad db
+
+import astropy.units as u
+import sys
+from astropy.coordinates import SkyCoord
+from astroquery.simbad import Simbad
+
+if len(sys.argv) !=2:
+    print(f"Usage:  {sys.argv[0]} object")
+    sys.exit(1)
+
+# Define target and query fields
+target_name = sys.argv[1]
+custom_simbad = Simbad()
+custom_simbad.add_votable_fields('ra', 'dec', 'sp_type', 'V', 'dimensions')
+
+# Query SIMBAD for Messier 20
+result_table = custom_simbad.query_object(target_name)
+
+if result_table is not None:
+    ra = result_table['ra'][0]
+    dec = result_table['dec'][0]
+    coord = SkyCoord(ra, dec, unit=(u.deg, u.deg))
+
+    print(f"Common Name: {target_name.strip()} / {result_table['MAIN_ID'][0].decode('utf-8').strip()}")
+    print(f"Type: {result_table['SP_TYPE'][0].decode('utf-8').strip()}")
+    print(f"RA (J2000): {coord.ra.to_string(unit=u.hourangle, sep='h m s', precision=2)}")
+    print(f"DEC (J2000): {coord.dec.to_string(unit=u.deg, sep='d m s', precision=1)}")
+    print(f"Magnitude (V): {result_table['FLUX_V'][0]}")
+    print(f"Size: {result_table['Dimensions'][0].decode('utf-8').strip()}")
+else:
+    print("Object not found or connection failed.")
+

@@ -1,0 +1,93 @@
+#!/usr/bin/python
+
+from datetime import datetime, time, timezone
+import numpy as np
+from skyfield import almanac
+from skyfield.api import Loader, Topos
+
+visible_data = []
+
+def timeAt10():
+    local_now = datetime.now().astimezone()
+    local_10pm = datetime.combine(local_now.date(), time(22, 0))
+    local_10pm_aware = local_10pm.replace(tzinfo=local_now.tzinfo)
+    current_time_utc = local_10pm_aware.astimezone(timezone.utc)
+    return current_time_utc
+
+# Load ephemeris and timescale data
+load = Loader('~/skyfield-data')
+ts = load.timescale()
+eph = load('de421.bsp')
+
+# Define observer location (Lincoln Beach, OR)
+observer_loc = Topos(latitude_degrees=44.8105, longitude_degrees=-124.0418)
+
+# Dynamically calculate UTC time for 10 PM local tonight
+dt_utc = timeAt10()
+t = ts.from_datetime(dt_utc)
+
+# Setup bodies
+earth, moon, sun = eph['earth'], eph['moon'], eph['sun']
+observer = earth + observer_loc
+apparent_pos = observer.at(t).observe(moon).apparent()
+
+# 1. Altitude and Azimuth (Decimal degrees)
+alt, az, distance = apparent_pos.altaz()
+alt_deg = alt.degrees
+az_deg = az.degrees
+
+# 2. Angular Size (Apparent diameter in arcminutes)
+moon_radius_km = 1737.4
+angular_diameter_rad = 2 * np.arctan(moon_radius_km / distance.km)
+angular_diameter_arcmin = np.degrees(angular_diameter_rad) * 60
+
+# 3. Magnitude and Illuminated Fraction
+fraction = almanac.fraction_illuminated(eph, 'moon', t)
+phase_angle = moon.at(t).phase_angle(sun).degrees
+approx_mag = -12.74 + 0.026 * abs(phase_angle) + 4e-4 * (phase_angle ** 3)
+
+# 4. Hours from Meridian (Hour Angle)
+ha, dec, _ = apparent_pos.hadec()
+ha_hours = ha.hours
+
+# 5. Find next Meridian Transit — FIXED FOR LOCAL TIME WITHOUT SECONDS
+t0 = ts.utc(dt_utc.year, dt_utc.month, dt_utc.day)
+t1 = ts.utc(dt_utc.year, dt_utc.month, dt_utc.day + 2)
+f = almanac.meridian_transits(eph, moon, observer_loc)
+times, events = almanac.find_discrete(t0, t1, f)
+transit_times = times[events == 1]
+
+if len(transit_times) > 0:
+    # 1. Extract raw naive UTC datetime object from Skyfield
+    raw_utc_dt = transit_times[0].utc_datetime().replace(tzinfo=timezone.utc)
+    # 2. Convert to system local timezone target
+    local_transit_dt = raw_utc_dt.astimezone()
+    # 3. Format string to hide seconds (YYYY-MM-DD HH:MM)
+    formatted_transit = local_transit_dt.strftime('%Y-%m-%d %H:%M')
+else:
+    formatted_transit = "None found in window"
+
+visible_data.append({"name": "Moon",
+            "common_name": "Moon",
+            "alt": alt_deg.round(4),
+            "az": az_deg.round(4),
+            "size": angular_diameter_arcmin.round(1),
+            "mag": approx_mag.round(1),
+            "type": 3,
+            "exposure": 0.0,
+            "framing": " ",
+            "PA": phase_angle.round(1) ,
+            "moon_sep": 0.0,
+            "priority": "Need",
+            "meridian": ha_hours.round(2),
+            "zenith_date": formatted_transit})
+
+# Output formatting
+print(f'Altitude: {alt_deg:.4f}°')
+print(f'Azimuth: {az_deg:.4f}°')
+print(f'Distance: {distance.km:.1f} km')
+print(f'Angular Size: {angular_diameter_arcmin:.2f} arcminutes')
+print(f'Illuminated Fraction: {fraction:.3f}')
+print(f'Approx. Magnitude: {approx_mag:.2f}')
+print(f'Hours from Meridian (HA): {ha_hours:.2f} hours')
+print(f'Next Meridian Transit (Local): {formatted_transit}')

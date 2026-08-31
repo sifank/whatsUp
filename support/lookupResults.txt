@@ -1,0 +1,43 @@
+IC5132 Object 'IC5132' not found.
+Name:  NGC2361 RA: 109.5897 Dec: -13.2130 Type: Unknown
+Sh 2158 Object 'Sh 2158' not found.
+Name:  ant nebula RA: 244.30579808 Dec: -51.98630886 Type: Planetary Nebula
+Name:  atoms for peace galaxy RA: 335.18656175 Dec: -24.67830820 Type: Galaxy
+Name:  barnard's loop RA: 81.87500000 Dec: -3.96666667 Type: Gaseous Nebula
+Name:  barnard's star RA: 269.45207696 Dec: +4.69336497 Type: Star
+Name:  boomerang nebula RA: 191.19204793 Dec: -54.52036929 Type: **pA***
+Name:  bullet cluster RA: 104.61200000 Dec: -55.97250000 Type: Galaxy
+Name:  cartwheel galaxy RA: 9.42130550 Dec: -33.71625419 Type: Galaxy
+Name:  cave nebula RA: 333.36250000 Dec: +70.25500000 Type: Gaseous Nebula
+Name:  coalsack nebula RA: 187.82916667 Dec: -63.74333333 Type: Gaseous Nebula
+Name:  coma cluster RA: 194.93502000 Dec: +27.91246000 Type: Galaxy
+Name:  coma star cluster RA: 182.97875000 Dec: +25.27666667 Type: Open Cluster
+copeland's septet Object 'copeland's septet' not found.
+Name:  egg nebula RA: 315.57612500 Dec: +36.69361111 Type: **pA***
+Name:  einstein cross RA: 340.12597500 Dec: +3.35850833 Type: Quasar
+Name:  eta carinae RA: 161.26477420 Dec: -59.68443090 Type: Star
+Name:  fu orionis RA: 86.34318660 Dec: +9.07008092 Type: **Or***
+Name:  galactic center RA: 266.41500889 Dec: -29.00611111 Type: Catalog Star
+Name:  gomez's hamburger RA: 272.30582400 Dec: -32.18056500 Type: Planetary Nebula
+Name:  gum nebula RA: 115.75000000 Dec: -42.10000000 Type: Gaseous Nebula
+Name:  heart nebula RA: 38.17500000 Dec: +61.45000000 Type: Gaseous Nebula
+Name:  hoag's object RA: 229.31002861 Dec: +21.58551563 Type: Galaxy
+Name:  horsehead nebula RA: 85.24583333 Dec: -2.45833333 Type: Gaseous Nebula
+Name:  integral sign galaxy RA: 107.84391667 Dec: +71.83637222 Type: **GiG**
+Name:  kapteyn's star RA: 77.91912433 Dec: -45.01843382 Type: Star
+Name:  keenan's system RA: 203.05501229 Dec: +62.72688947 Type: **GrG**
+leo1 Object 'leo1' not found.
+Name:  mayall's object RA: 165.97454804 Dec: +40.84996806 Type: Galaxy
+Name:  medusa nebula RA: 112.26129027 Dec: +13.24682988 Type: Planetary Nebula
+Name:  necklace nebula RA: 295.99796442 Dec: +17.15026772 Type: Star
+Name:  p cygni RA: 304.44667489 Dec: +38.03293031 Type: Star
+Name:  rr lyrae RA: 291.36630400 Dec: +42.78435924 Type: **RR***
+sagdig Object 'sagdig' not found.
+Name:  seyfert's sextet RA: 239.79835500 Dec: +20.75684900 Type: **CGG**
+Name:  stephan's quintet RA: 338.98958333 Dec: +33.96000000 Type: **CGG**
+Name:  tadpole galaxy RA: 241.51628429 Dec: +55.42544114 Type: Galaxy
+Name:  tadpole nebula RA: 308.55521570 Dec: +41.13719371 Type: Star
+Name:  t tauri RA: 65.49763328 Dec: +19.53512011 Type: Star
+Name:  ursa major moving group RA: 188.00000000 Dec: +57.00000000 Type: **MGr**
+Name:  wild's triplet RA: 176.68843572 Dec: -3.84804125 Type: Galaxy
+Name:  wizard nebula RA: 341.88333333 Dec: +58.04833333 Type: Gaseous Nebula

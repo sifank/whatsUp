@@ -1,0 +1,29 @@
+#!/usr/bin/python3
+
+import astropy.units as u
+from astropy.time import Time
+from astropy.coordinates import SkyCoord
+from astroplan import Observer, FixedTarget
+
+# 1. Define the observer location (Lincoln Beach, OR approx: 44.8° N, 124.0° W)
+observer_loc = Observer(latitude=44.8 * u.deg, longitude=-124.0 * u.deg, elevation=0 * u.m)
+
+# 2. Set the observation time
+obs_time = Time("2026-07-02 21:00:00") # Replace with current date/time
+
+# 3. Define the target object (e.g., M13)
+target = FixedTarget.from_name("M13")
+
+# 4. Calculate the Local Hour Angle (LHA)
+# In Astropy/Astroplan, LHA is represented on the [0, 24) hour interval. 
+# 1 hour before transit means the LHA is between 23.0h and 24.0h.
+lha = observer_loc.target_hour_angle(obs_time, target)
+
+# 5. Check if the object is within the 1-hour window before transit
+# LHA is 0h at meridian, so 1 hour before is represented as 23h to 24h.
+is_within_1hr_before = 23.0 <= lha.hour < 24.0
+
+print(f"Target: {target.name}")
+print(f"Local Hour Angle: {lha.hour:.2f} hours")
+print(f"Within 1 hour before meridian crossing: {is_within_1hr_before}")
+
