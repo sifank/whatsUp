@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 # Program: whatsUp.py
-# Version: 20260822
+# Version: 20260830
 # Author:  Sifan Kahale
 # Desc:    Lists targets according to date/time, equipment, moon interference, etc.
 
@@ -63,16 +63,6 @@ SEARCHTYPE = {
     "Image Loc": "imageLoc",
     "Priority": "procFlag"
     }
-
-# Equipment selector choices
-EQUIPFOV = {
-    1: ("C14 1 ASI294", 16.8, 20.4),
-    2: ("C14 .7 ASI294", 24.1, 16.4),
-    3: ('ES152 1 ASI2600', 81.6, 54.0),
-    4: ("C14 .2 ASI294", 162, 111),
-    5: ('Dwarf3 T', 174.0, 102.0),
-    6: ('Dwarf3 W', 2700.0, 1500.0)
-}
 
 defSelection = {
     "database": "KBcatalog",
@@ -152,7 +142,7 @@ def index():
 
     #defs.debug(f"DF Type (in main): {app.config['CRITERIA']['TYPE']}, Types type: {type(app.config['CRITERIA']['TYPE'][0])}")
 
-    return render_template('whatsUpMain.html', DS = app.config['CRITERIA'], EQ = EQUIPFOV, CT = CT, DSO = DSOTYPE, TS = TELESCOPE, CM = CAMERAS)
+    return render_template('whatsUpMain.html', DS = app.config['CRITERIA'], CT = CT, DSO = DSOTYPE, TS = TELESCOPE, CM = CAMERAS)
 
 #===============================================================
 @app.route('/showlist', methods=['POST'])

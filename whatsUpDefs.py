@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 # Program: whatsUpDefs.py
-# Version: 20260822
+# Version: 20260830
 # Author:  Sifan Kahale
 # Desc:    contains most of the def functions for whatsUp.py
 
