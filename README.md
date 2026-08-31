@@ -1,6 +1,10 @@
 # whatsUp
 Comprehensive tool for scheduling nighttime observations
 
+Prerequisites:
+1. python3, flask, ephem, PIL, matplotlib, numpy, skyfield, astropy, ast, urllib, requests, telescopius
+2. mysql or mariadb
+
 Installation:
 1. cd /var/www/html
 2. Run: git clone https://github.com/sifank/whatsUp.git
