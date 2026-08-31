@@ -1,0 +1,15 @@
+CREATE TABLE `KBcatalog` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `objectName` varchar(50) DEFAULT NULL,
+  `commonName` varchar(700) DEFAULT NULL,
+  `type` int(11) DEFAULT NULL,
+  `rightascension` float DEFAULT NULL,
+  `declination` float DEFAULT NULL,
+  `magnitude` float DEFAULT NULL,
+  `apSize` float DEFAULT NULL,
+  `PA` float DEFAULT NULL,
+  `imageLoc` varchar(100) DEFAULT NULL,
+  `procFlag` varchar(15) DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `idx_objectName` (`objectName`)
+) ENGINE=InnoDB
