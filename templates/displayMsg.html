@@ -1,0 +1,36 @@
+<html lang="en">
+<head>
+    <meta cahrset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="icon" href="/static/favicon.ico">
+    <title>Message</title>
+</head>
+<body>
+    <table>
+    <tr><th colspan="5"><h2 style="text-align: center;"><span style="background-color: deepskyblue;">Message</span></h2></th></tr>
+    <tr><td><textarea readonly class="text-box">
+        {{ message }}
+        </textarea></td></tr>
+    </table><br>
+    
+    <form>
+        <td><button id="backBtn" onclick="history.back()" style="white-space: nowrap;">Go Back</button></td>
+    </form>
+
+    <script>
+        // Listen for key presses on the entire page
+        document.addEventListener('keydown', function(event) {
+            // Check if the pressed key is Enter
+            if (event.key === 'Enter') {
+            // Prevent default Enter actions like submitting forms
+            event.preventDefault();
+            // Click the back button automatically
+            document.getElementById('backBtn').click();
+            }
+        });
+    </script>
+</body>
+</html>
+

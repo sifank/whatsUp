@@ -1,0 +1,220 @@
+<html lang="en">
+<head>
+    <meta cahrset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="icon" href="/static/favicon.ico">
+    <title>What's Up Criteria'</title>
+</head>
+<body>
+    <table>
+
+    <!----------- Selected Criteria info ---------------------->
+    <tr><th colspan="7"><h2 style="text-align: center;"><span style="background-color: deepskyblue;">KOBS What's Up</span></h2></th></tr>
+
+    <!----------- Enter Criteria info ---------------------->
+	<form method="POST" action="/showlist">
+    <tr>
+        <!----------- Calendar Pick -------------------------------->
+        <td class="char-limit-col35"><label for="date_input">Local Date:</label><span style="float: right;">
+        <input type="date" id="date_input" name="user_date" value="{{ CT[0] }}" required></td>
+        <!-- Time Pull-Downs -->
+        <td class="char-limit-col25"><label>Time (24h):</label><span style="float: right;">
+        <!-- Hour Dropdown -->
+        <select name="user_hour" required>
+            {% for hour in range(0, 24) %}
+                {% set hour_str = "%02d" | format(hour) %}
+                <option value="{{ hour_str }}" {% if hour_str == CT[1] %}selected{% endif %}>
+                    {{ hour }}
+                </option>
+            {% endfor %}
+        </select>
+        <!-- Minute Dropdown -->
+        <select name="user_minute" required>
+            {% for min in range(0, 60, 10) %}
+                {% set min_str = "%02d" | format(min) %}
+                <option value="{{ min_str }}" {% if min_str == CT[2] %}selected{% endif %}>
+                    {{ min }}
+                </option>
+            {% endfor %}
+        </select></span></td>
+
+    </tr>
+
+    <!------------- Select GPS  -------------------->
+    <tr>
+        <td><label>Long:   </label><span style="float: right;">
+            <input type="text" name="Longitude" value="{{ DS['LONGITUDE'] }}"></span></td>
+        <td><label>Lat:   </label><span style="float: right;">
+            <input type="text" name="Latitude" value="{{ DS['LATITUDE'] }}"></span></td>
+        <td><label>Elev:   </label><span style="float: right;">
+            <input type="text" name="Elevation" value="{{ DS['ELEVATION'] }}"></span></td>
+    </tr>
+
+    <tr>
+    <!------------- Select Telescope -------------------->
+        <td class="char-limit-col35"><label>Telescope:</label><span style="float: right;">
+                <select name='telescope' id='telescope'>
+                <option value="{{ DS['TELESCOPE'] }}" selected disabled hidden>{{ DS['TELESCOPE'] }}</option>
+                {% for item in TS %}
+                        <option value="{{ item }}">{{ item }}</option>
+                {% endfor %}
+                </select></span></td>
+    <!------------- Select Reducer -------------------->
+        <td><label>Reducer:   </label><span style="float: right;">
+           <select name='reducer' id = 'reducer' required>
+            <option value="{{ DS['REDUCER'] }}" selected disabled hidden>  {{ DS['REDUCER'] }} </option>
+            {% for item in [".2", ".7", "1.0", "2.0"] %}
+                    <option value="{{ item }}">{{ item }}</option>
+            {% endfor %}
+        </select></span></td>
+        <!------------- Select Camera------------------->
+        <td class="char-limit-col35"><label>Camera:</label><span style="float: right;">
+                <select name='camera' id='camera'>
+                <option value="{{ DS['CAMERAS'] }}" selected disabled hidden>{{ DS['CAMERAS'] }}</option>
+                {% for item in CM %}
+                        <option value="{{ item }}">{{ item }}</option>
+                {% endfor %}
+                </select></span></td>
+
+    </tr>
+
+    <tr>
+    <!------------- Select minimum altitude  -------------------->
+        <td><label>Min Alt:   </label><span style="float: right;">
+                <select name='minAlt' id='minAlt'>
+                <option value="{{ DS['MINALT'] }}" selected disabled hidden>{{ DS['MINALT'] }}</option>
+                {% for item in range(0, 41, 5) %}
+                        <option value="{{ item }}">{{ item }}</option>
+                {% endfor %}
+                </select></span></td>
+
+    <!------------- Select Distance from moon  -------------------->
+        <td><label>Moon Dist:   </label><span style="float: right;">
+                <select name='moonDist' id='moonDist'>
+                <option value="{{ DS['MOONDIST'] }}" selected disabled hidden>{{ DS['MOONDIST'] }}</option>
+                {% for item in range(0, 41, 5) %}
+                        <option value="{{ item }}">{{ item }}</option>
+                {% endfor %}
+                </select></span></td>
+
+    <!------------- Select minimum visible magnitude  -------------------->
+        <td><label>Vis Mag:   </label><span style="float: right;">
+                <select name='visMag' id='visMag'>
+                <option value="{{ DS['visMag'] }}" selected disabled hidden> {{ DS['visMag'] }} </option>
+                {% for item in range(0, 21) %}
+                        <option value="{{ item }}">{{ item }}</option>
+                {% endfor %}
+                </select></span></td>
+
+    </tr>
+
+    <!------------- Select Median hours -------------------->
+    <tr>
+        <td><label>Median Hours:   </label><span style="float: right;">
+           <select name='medHr' id = 'medHr' required>
+            <option value="{{ DS['medReqHr'] }}" selected disabled hidden>  {{ DS['medReqHr'] }} </option>
+            {% for item in range(0, 6) %}
+                    <option value="{{ item }}">{{ item }}</option>
+            {% endfor %}
+        </select></span></td>
+
+    <!------------- Select Framing -------------------->
+    <td><label>Framing:   </label><span style="float: right;">
+            <select name='framing' id='framing'>
+            <option value="{{ DS['FRAMESTAT'] }}" selected disabled hidden>{{ DS['FRAMESTAT'] }}</option>
+            {% for item in ["All", "Too Large", "Too Small", "Perfect Fit"] %}
+                    <option value="{{ item }}">{{ item }}</option>
+            {% endfor %}
+            </select></span></td>
+
+        <!------------- Select Database  -------------------->
+        <td><label>Database   </label><span style="float: right;">
+                <select name='database' id='database'>
+                <option value="{{ DS['database'] }}" selected disabled hidden> {{ DS['database'] }} </option>
+                {% for item in ["KBcatalog", "IPcatalog", "DScatalog"] %}
+                        <option value="{{ item }}">{{ item }}</option>
+                {% endfor %}
+                </select></span></td>
+
+    </tr>
+    <!--===============================================================-->
+    <th colspan="7"><span style="text-align: center;">Select Target Types</span></tr>
+    <tr>
+        <td colspan="7">
+        <label><input type="checkbox" id="check-all" name="All" value=255 {% if '255' in DS['TYPE'] %}checked{% endif %}>All</label>
+
+        <label><input type="checkbox" class="check-item" name="Star" value=0 {% if "0" in DS['TYPE'] %}checked{% endif %}> Stars</label>
+        <label><input type="checkbox" class="check-item" name="Mstar" value=17 {% if "17" in DS['TYPE'] %}checked{% endif %}>Binary Stars</label>
+        <label><input type="checkbox" class="check-item" name="Asterism" value=13 {% if "13" in DS['TYPE'] %}checked{% endif %}> Asterism</label>
+        <label><input type="checkbox" class="check-item" name="OC" value=3 {% if "3" in DS['TYPE'] %}checked{% endif %}> Open Cluster</label>
+        <label><input type="checkbox" class="check-item" name="GC" value=4 {% if "4" in DS['TYPE'] %}checked{% endif %}> Globular Cluster</label>
+        <label><input type="checkbox" class="check-item" name="PL" value=2 {% if "2" in DS['TYPE'] %}checked{% endif %}> Planets</label>
+        <label><input type="checkbox" class="check-item" name="Moon" value=12 {% if "12" in DS['TYPE'] %}checked{% endif %}> Moon</label>
+        </td></tr>
+        <tr><td colspan="7">
+        <label><input type="checkbox" class="check-item" name="PlanN" value=6 {% if "6" in DS['TYPE'] %}checked{% endif %}> Planetary Nebula</label>
+        <label><input type="checkbox" class="check-item" name="Neb" value=5 {% if "5" in DS['TYPE'] %}checked{% endif %}> Nebula</label>
+        <label><input type="checkbox" class="check-item" name="DarkN" value=15 {% if "15" in DS['TYPE'] %}checked{% endif %}> Dark Nebula</label>
+        <label><input type="checkbox" class="check-item" name="SM" value=7 {% if "7" in DS['TYPE'] %}checked{% endif %}> SuperNova</label>
+        <label><input type="checkbox" class="check-item" name="Gal" value=8 {% if "8" in DS['TYPE'] %}checked{% endif %}> Galaxy</label>
+        <label><input type="checkbox"  class="check-item"name="GalC" value=14 {% if "14" in DS['TYPE'] %}checked{% endif %}> Galactic Cluster</label>
+        </td>
+    </tr>
+    </table>
+
+    <table>
+    <tr><td colspan="7">Click 'Update' first if you make any changes above</td></tr>
+    <tr>
+        <td><button type="submit" name="action" value="list" style="white-space: nowrap;">Create List</button> </td>
+        <td><button type="submit" name="action" value="update">Update</button> </td>
+    </form>
+
+    <form method="POST" action="defaults">
+        <td><input type="submit" name="defaults" value="Set to Default"> </td>
+    </form>
+
+    <form method="POST" action="atTenpm">
+        <td><input type="submit" name="atTenpm" value="Set To 10pm"> </td>
+    </form>
+
+    <form method="POST" action="kfobs">
+        <td><input type="submit" name="kfobs" value="GPS to KFOBS"> </td>
+    </form>
+
+    <form method="POST" action="hilites">
+        <td><input type="submit" name="hilites" value="Tonights Hilites"> </td>
+    </form>
+
+    <form method="POST" action="/managedb">
+        <td><input type="submit" name="managedb" value="Manage DB"> </td>
+    </form>
+
+    </tr>
+    </table>
+
+    <script>
+        const allCheckbox = document.getElementById('check-all');
+        const otherCheckboxes = document.querySelectorAll('.check-item');
+
+        // If "All" is checked, uncheck all other boxes
+        allCheckbox.addEventListener('change', function() {
+            if (allCheckbox.checked) {
+            otherCheckboxes.forEach(cb => cb.checked = false);
+            }
+        });
+
+        // If any other box is checked, uncheck "All"
+        otherCheckboxes.forEach(cb => {
+            cb.addEventListener('change', function() {
+            if (cb.checked) {
+                allCheckbox.checked = false;
+            }
+            });
+        });
+    </script>
+
+</body>
+</html>
+

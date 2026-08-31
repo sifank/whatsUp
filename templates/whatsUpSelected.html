@@ -1,0 +1,36 @@
+<!-- whatsUpList.html -->
+<html lang="en">
+<head>
+    <meta cahrset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="icon" href="/static/favicon.ico">
+    <title>KOBS What's Up'</title>
+</head>
+
+<body>
+
+    <h2 style="text-align: center; background-color: deepskyblue;">What's Up Selected List</h2>
+    <h4 style="text-align: center; background-color: skyblue;">Copy lines below and paste them into EKOS Planner's "Batch Add"<h4>
+
+    <!----------- Matching Ojbects Table ---------------------->
+   <div> <table>
+    {% for row in SEL %}
+    <tr>
+	<td style="width: 25ch;">{{ row }}</td>
+    </tr>
+    {% endfor %}
+    </table></div>
+
+    <!----------- Set New Criteria ---------------------->
+    <div><table style="td-small;"><tr>
+        <td><button onclick="history.back()" style="white-space: nowrap;">Go Back</button></td>
+        <form method="POST" action="/refresh">
+            <td><button type="submit" name="newcrit" value="newcrit">New Criteria</button></td>
+        </form>
+    </table></div>
+
+</body>
+</html>
+

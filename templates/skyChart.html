@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="icon" href="/static/favicon.ico">
+    <title>Sky Chart</title>
+    <style>
+        body { font-family: sans-serif; text-align: center; margin-top: 50px; background-color: #f7f9fa; }
+
+        .preview-image {
+            width: 100%;
+            max-width: 500px;
+            height: auto;
+            border: 3px solid #333;
+            cursor: pointer; /* Changes mouse cursor to hand icon on hover */
+            transition: transform 0.2s ease;
+        }
+
+        /* Styles applied automatically by browser when element goes fullscreen */
+        .preview-image:fullscreen {
+            object-fit: contain; /* Prevents image distortion */
+            background-color: black; /* Adds classic cinema background black bars */
+            width: 100vw;
+            height: 100vh;
+            max-width: 100%;
+        }
+    </style>
+
+</head>
+
+<body>
+    <h1 style="color: white;">Sky Chart</h1>
+    <p style="color: white;">Double-click the image below to view it full screen.</p>
+
+    <!-- Added id and ondblclick event trigger -->
+    <img id="fullscreen-target"
+         class="preview-image"
+         src="{{ url_for('static', filename='whatsUpSkyChart.png') }}?v={{ range(1, 99999) | random }}"
+         alt="Sky Chart"
+         ondblclick="toggleFullscreen()">
+
+         <form method="POST" action="/refresh">
+            <button onclick="history.back()" style="white-space: nowrap;">Go Back</button>
+            <td><button type="submit" name="newcrit" value="newcrit">New Criteria</button></td>
+        </form>
+
+    <script>
+        function toggleFullscreen() {
+            const img = document.getElementById('fullscreen-target');
+
+            // If there is no active fullscreen element, enter fullscreen
+            if (!document.fullscreenElement) {
+                if (img.requestFullscreen) {
+                    img.requestFullscreen();
+                } else if (img.webkitRequestFullscreen) { /* Safari support */
+                    img.webkitRequestFullscreen();
+                } else if (img.msRequestFullscreen) { /* IE11 support */
+                    img.msRequestFullscreen();
+                }
+            } else {
+                // If already fullscreen, a double click exits it
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                }
+            }
+        }
+    </script>
+</body>
+</html>
+

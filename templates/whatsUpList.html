@@ -1,0 +1,129 @@
+<!-- whatsUpList.html -->
+<html lang="en">
+<head>
+    <meta cahrset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="icon" href="/static/favicon.ico">
+    <title>KOBS What's Up'</title>
+</head>
+
+<body>
+    <div>
+    <!----------- Selected Criteria info ---------------------->
+    <table>
+        <tr><th colspan="7"><h2 style="text-align: center;"><span style="background-color: deepskyblue;">KOBS What's Up</span></h2></th></tr>
+
+        <!-------------------------------------------------------------------->
+        <tr>
+            <td style="width: 25ch;">Sun Altitude</td>
+            <td style="width: 10ch;">{{HI["sun_alt"]}}</td>
+            <td style="width: 25ch;">{{HI["sky_status"]}}</td>
+            <td style="width: 5ch;"></td>
+            <td style="width: 25ch;">Moon Status</td>
+            <td style="width: 25ch;">Illumination : {{HI["moon_illumination"]}}</td>
+            <td style="width: 25ch;">Alt: {{HI["moon_alt"]}} Az: {{HI["moon_az"]}}</td>
+        </tr>
+    </table>
+    </div>
+
+    <!----------- Matching Ojbects Table ---------------------->
+    <div class="scrollable-table-wrapper">
+    <table>
+        <tr>
+        <th style="width:5ch;"> </th>
+        <th style="width: 25ch;">Name</th>
+        <th style="width: 50ch;">Common Name</th>
+        <th style="width: 25ch;">Type</th>
+        <th style="width: 25ch;">Alt</th>
+        <th style="width: 25ch;">Size</th>
+        <th style="width: 25ch;">vMag</th>
+        <th style="width: 25ch;">PA</th>
+        <th style="width: 25ch;">Exp</th>
+        <th style="width: 25ch;">Framing</th>
+        <th style="width: 25ch;">Meridian</th>
+        <th style="width: 25ch;">Moon Sep</th>
+        <th style="width: 25ch;">Priority</th>
+        <th style="width: 25ch;">Image</th>
+        </tr>
+
+        <form method="POST" action="/file">
+        {% for row in VS %}
+        <tr>
+            <td style="width: 5ch; max-width: 15ch;">
+                <input type="checkbox" name="selected_ids" value="{{ row.name }}">
+            </td>
+        <td style="width: 25ch;">{{ row.name }}</td>
+        <td style="width: 50ch;">{{ row.common_name }}</td>
+        <td style="width: 25ch;">{{ DSO[row.type] }}</td>
+        <td style="width: 25ch;">{{ row.alt | round(4) }}</td>  <!-- format to .4f -->
+        <td style="width: 25ch;">{{ row.size | round(1) }}</td>
+        <td style="width: 25ch;">{{ row.mag }}</td>
+        <td style="width: 25ch;">{{ row.PA }}</td>
+        <td style="width: 25ch;">{{ row.exposure }}</td>
+        <td style="width: 25ch;">{{ row.framing }}</td>
+        <td style="width: 25ch; ">{{ row.meridian }}</td>
+        <td style="width: 25ch; ">{{ row.moon_sep|round(1) }}</td>
+        <td style="width: 25ch; ">{{ row.priority }}</td>
+        <td>
+                {% if row.image %}
+                    {% if row.image.startswith('https://') or row.image.startswith('http://') %}
+                        <img src="{{ row.image }}"
+                            alt="{{ row.image }}"
+                            style="max-width: 100px; height: auto; cursor: pointer;"
+                            onclick="openModal('{{ row.image }}')">
+                        <!--<img src="{{ row.image }}" alt="Astro Image" style="max-width: 150px; height: auto;" onclick="openModal('{{ row.image }}')">-->
+                    {% else %}
+                        <img src="{{url_for('static', filename='astroimages/' + row.image) }}"
+                            alt="{{ row.image }}"
+                            style="max-width: 100px; height: auto; cursor: pointer;"
+                            onclick="openModal('{{ url_for('static', filename='astroimages/' + row.image) }}')">
+                        <!--<img src="{{ url_for('static', filename='astroimages/' + row.image) }}" alt="Astro Image" width="150" onclick="openModal('{{ row.image }}')">-->
+                    {% endif %}
+                {% endif %}
+        </tr>
+        {% endfor %}
+    <!----------- Selection Options ---------------------->
+    </table></div>
+    <table style="td-small;">
+        <tr>
+            <td><button type="button" onclick="checkAll(true)" style="white-space: nowrap;">Select All</button></td>
+            <td><button type="button" onclick="checkAll(false)" style="white-space: nowrap;">Select None</button></td>
+            <td><button type="submit" name="action" value="output" style="white-space: nowrap;">Output List</button></td>
+            <td><input type="hidden" name="Selected" value="{{ VS }}">
+            <button type="submit" name="action" value="plot" style="white-space: nowrap;">Plot Skychart</button>
+             </td>
+        </form>
+
+        <form method="POST" action="/refresh">
+            <td><button type="submit" name="newcrit" value="newcrit" style="white-space: nowrap;">New Criteria</button></td>
+        </form>
+
+    </tr></table>
+
+    <!-- Full screen overlay container -->
+    <div id="fullscreenModal" class="modal" onclick="closeModal()">
+    <img id="modalImage" src="" alt="Full Screen Image" class="modal-content">
+    </div>
+
+    <script>
+        function checkAll(status) {
+            // Selects all loop-generated checkboxes
+            const checkboxes = document.getElementsByName('selected_ids');
+            // Sets their checked property to true or false
+            checkboxes.forEach(cb => cb.checked = status);
+        }
+        function openModal(imageSrc) {
+            console.log("Opening image source:", imageSrc);
+            document.getElementById('modalImage').src = imageSrc;
+            document.getElementById('fullscreenModal').style.display = 'flex';
+        }
+        function closeModal() {
+            document.getElementById('fullscreenModal').style.display = 'none';
+        }
+    </script>
+
+</body>
+</html>
+

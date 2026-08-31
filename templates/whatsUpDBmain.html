@@ -1,0 +1,158 @@
+<html lang="en">
+<head>
+    <meta cahrset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="icon" href="/static/favicon.ico">
+    <title>WhatsUp Manage DB</title>
+</head>
+
+<body>
+    <div>
+    <table table-layout: fixed; >
+    <tr><th colspan="11"><h2 style="text-align: center;"><span style="background-color: deepskyblue;">WhatsUp Manage Database</span></h2></th></tr>
+    <tr>
+        <th style="width: 10ch;"> </th>
+        <th style="width: 25ch;">Name</th>
+        <th style="width: 50ch;">Common Name</th>
+        <th style="width: 25ch;">Type</th>
+        <th style="width: 25ch;">RA</th>
+        <th style="width: 25ch;">DEC</th>
+        <th style="width: 25ch;">Size</th>
+        <th style="width: 25ch;">Mag</th>
+        <th style="width: 25ch;">PA</th>
+        <th style="style="width: 25ch; max-width: 25ch; white-space: nowrap; overflow: hidden;
+    text-overflow: ellipsis;">Image Loc</th>
+        <th style="width: 25ch;">Priority</th>
+    </tr>
+
+    {% for row in Session %}
+        <tr>
+            <form method='Post' action="/objSearch">
+                <td style="width: 10ch;">
+                    <button type="submit">Manage</button>
+                    <input type="hidden" id="ID" name="lookupObject" value="{{ row[1] }}">
+                    <input type="hidden" name="OpType" value="Modify">
+                    <input type="hidden" id="ID" name="ID" value="{{ row[0] }}">
+                </form></td>
+            <td style="width: 25ch;">{{ row[1] }}</td>
+            <td style="width: 50ch;">{{ row[2] }}</td>
+            <td style="width: 25ch;">{{ DSO[row[3]] }}</td>
+            <td style="width: 25ch; ">{{ row[4] }}</td>
+            <td style="width: 25ch; ">{{ row[5] }}</td>
+            <td style="width: 25ch;">{{ row[7] }}</td>
+            <td style="width: 25ch;">{{ row[6] }}</td>
+            <td style="width: 25ch;">{{ row[8] }}</td>
+            <td>
+                {% if row[9] %}
+                    {% if row[9].startswith('https://') or row[9].startswith('http://') %}
+                        <img src="{{ row[9] }}"
+                            alt="{{ row[9] }}"
+                            style="max-width: 100px; height: auto; cursor: pointer;"
+                            onclick="openModal('{{ row[9] }}')">
+                        <!--<img src="{{ row[9] }}" alt="Astro Image" style="max-width: 150px; height: auto;" onclick="openModal('{{ row[9] }}')">-->
+                    {% else %}
+                        <img src="{{url_for('static', filename='astroimages/' + row[9]) }}"
+                            alt="{{ row[9] }}"
+                            style="max-width: 100px; height: auto; cursor: pointer;"
+                            onclick="openModal('{{ url_for('static', filename='astroimages/' + row[9]) }}')">
+                        <!--<img src="{{ url_for('static', filename='astroimages/' + row[9]) }}" alt="Astro Image" width="150" onclick="openModal('{{ row[9] }}')">-->
+                    {% endif %}
+                {% endif %}
+            <td style="width: 25ch;">
+            <form method="POST" action="/updatePriority">
+            <select name="Priority"
+                data-row="{{ row[0]|tojson|forceescape }}"
+                data-sql="{{ SQL|tojson|forceescape }}"
+                onchange="sendData(this)">
+                <option value="{{ row[10] }}" selected disabled hidden>{{ row[10] }}</option>
+                {% for item in PF %}
+                    <option value="{{ item }}">{{ item }}</option>
+                {% endfor %}
+            </select>
+            </form></td>
+        </tr>
+    {% endfor %}
+    </table>
+    </div>
+
+    <!---------------  Buttons ------------------------------------------->
+    <div>
+    <table style="td-small;"><tr>
+
+    <form method="POST" action="/add">
+        <td><input type="submit" value="Add"></td>
+    </form>
+    <form method="POST" action="/refresh">
+        <td><input type="submit" value="New Criteria"></td>
+    </form>
+
+    <td><button onclick="location.reload();">Refresh Page</button></td>
+    <td><button onclick="history.back()" style="white-space: nowrap;">Go Back</button></td>
+
+    <form method="POST" action="/search">
+        <tr><td>
+            <input type="submit" name="action" value="Search">
+        </td>
+        <td>
+            <select name="stype">
+                {% for key in SEARCHTYPE %}
+                    <!-- key is the dictionary key, SEARCHTYPE[key] is the value -->
+                    <option value="{{ SEARCHTYPE[key] }}">{{ key }}</option>
+                {% endfor %}
+            </select>
+            <td><input type="text" name="sregex"></td>
+        </td>
+    </tr>
+    </form>
+
+    </tr></table>
+    </div>
+
+    <!-- Full screen overlay container -->
+    <div id="fullscreenModal" class="modal" onclick="closeModal()">
+    <img id="modalImage" src="" alt="Full Screen Image" class="modal-content">
+    </div>
+
+    <!---------------------------- scripts ------------------------------->
+    <script>
+        function sendData(selectElement) {
+            const selectedValue = selectElement.value;
+
+            // Cleanly extract the row and SQL values from the element's attributes
+            // JSON.parse strips away the safe JSON wrappers added by Flask
+            const row = JSON.parse(selectElement.getAttribute('data-row'));
+            const SQL = JSON.parse(selectElement.getAttribute('data-sql'));
+
+            fetch('/updatePriority', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: 'Priority=' + encodeURIComponent(selectedValue) +
+                    '&Row=' + encodeURIComponent(row) +
+                    '&SQL=' + encodeURIComponent(SQL)
+            })
+            .then(response => {
+                if (response.ok) {
+                    console.log('Updated successfully!');
+                }
+            })
+            .catch((error) => {
+                console.error('Error handling request:', error);
+            });
+        }
+        function openModal(imageSrc) {
+            console.log("Opening image source:", imageSrc);
+            document.getElementById('modalImage').src = imageSrc;
+            document.getElementById('fullscreenModal').style.display = 'flex';
+        }
+        function closeModal() {
+            document.getElementById('fullscreenModal').style.display = 'none';
+        }
+    </script>
+
+</body>
+</html>
+

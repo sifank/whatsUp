@@ -1,0 +1,222 @@
+<html lang="en">
+<head>
+    <meta cahrset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="icon" href="/static/favicon.ico">
+    <title>WhatsUp DB matches</title>
+</head>
+
+<body>
+    <div>
+    <table table-layout: fixed; width: 100%;>
+    <tr><th colspan="100%"><h2 style="text-align: center;"><span style="background-color: deepskyblue;">WhatsUp DB Matches</span></h2></th></tr>
+    <tr>
+        <th style="width: 10ch;"> </th>
+        <th style="width: 25ch;">DB</th>
+        <th style="width: 25ch;">Name</th>
+        <th style="width: 50ch;">Common Name</th>
+        <th style="width: 25ch;">Type</th>
+        <th style="width: 25ch;">RA</th>
+        <th style="width: 25ch;">DEC</th>
+        <th style="width: 25ch;">Size</th>
+        <th style="width: 25ch;">Mag</th>
+        <th style="width: 25ch;">PA</th>
+        <th style="width: 25ch; max-width: 50ch; ">Image Loc</th>
+        <th style="width: 25ch;">Priority</th>
+    </tr>
+
+    {% for row in Session %}
+        <tr>
+            <form method='Post' action="/fillWithSelected">
+                <td style="width: 10ch;">
+                    <button type="submit">Select</button>
+                    <input type="hidden" name="SEL" value="{{ row }}">
+                </form></td>
+            <td style="width: 25ch;">{{ row[0] }}</td>
+            <td style="width: 25ch;">{{ row[2] }}</td>
+            <td style="width: 50ch;">{{ row[3] }}</td>
+            <td style="width: 25ch;">{{ DSO[row[4]] }}</td>
+            <td style="width: 25ch; ">{{ row[5] }}</td>
+            <td style="width: 25ch; ">{{ row[6] }}</td>
+            <td style="width: 25ch;">{{ row[8] }}</td>
+            <td style="width: 25ch;">{{ row[7] }}</td>
+            <td style="width: 25ch;">{{ row[9] }}</td>
+            <td style="width: 25ch; max-width: 50ch; ">{{ row[10] }}</td>
+            <td style="width: 25ch;">{{ row[11] }}</td>
+        </tr>
+    {% endfor %}
+    </table></div>
+
+<form method="POST" action="/modifyok" onsubmit="return ConfirmModify();">
+    <table>
+        <tr>
+            <th colspan="5">
+                <h2 style="text-align: center;">
+                    <span style="background-color: deepskyblue;">DB Add/Modify Object</span>
+                </h2>
+            </th>
+        </tr>
+
+        <!-- --------------- input ------------------------- -->
+        <tr>
+            <th>Name</th>
+            <th>Common Name</th>
+            <th>Image Location</th>
+        </tr>
+        <tr>
+            <td>
+                <input type="text" name="objectName" value="{{ SEL[2] }}">
+                <input type="hidden" name="objectName_orig" value="{{ SEL[2] }}">
+            </td>
+            <td>
+                <textarea name="commonName" rows="3" cols="50" style="background-color: white; color: black;">{{ SEL[3] }}</textarea>
+                <input type="hidden" name="commonName_orig" value="{{ SEL[3] }}">
+            </td>
+            <td>
+                {% if SEL[10] %}
+                    {% if SEL[10].startswith('https://') or SEL[10].startswith('http://') %}
+                        <img src="{{ SEL[10] }}"
+                            alt="Astro Image"
+                            style="max-width: 100px; height: auto; cursor: pointer;"
+                            onclick="openModal('{{ SEL[10] }}')">
+                    {% else %}
+                        <img src="{{url_for('static', filename='astroimages/' + SEL[10]) }}"
+                            alt="Astro Image"
+                            style="max-width: 100px; height: auto; cursor: pointer;"
+                            onclick="openModal('{{ url_for('static', filename='astroimages/' + SEL[10]) }}')">
+                    {% endif %}
+                {% endif %}
+                <textarea name="imageLoc" rows="3" cols="50" style="background-color: white; color: black;">{{ SEL[10] }}</textarea>
+                <input type="hidden" name="imageLoc_orig" value="{{ SEL[10] }}">
+            </td>
+        </tr>
+
+        <tr>
+            <th>RA</th>
+            <th>DEC</th>
+            <th>Type</th>
+        </tr>
+        <tr>
+            <td>
+                <input type="number" step="any" name="ra" value="{{ SEL[5] }}">
+                <input type="hidden" name="ra_orig" value="{{ SEL[5] }}">
+            </td>
+            <td>
+                <input type="number" step="any" name="dec" value="{{ SEL[6] }}">
+                <input type="hidden" name="dec_orig" value="{{ SEL[6] }}">
+            </td>
+            <td>
+                <select name='Type'>
+                    <option value="{{ SEL[4] }}" selected disabled hidden>{{ DSO[SEL[4]] }}</option>
+                    {% for item in DSO %}
+                        <option value="{{ item }}" {% if value == SEL[4] %} selected {% endif %}>{{ DSO[item] }}</option>
+                    {% endfor %}
+                </select>
+            </td>
+        </tr>
+
+        <tr>
+            <th>Size</th>
+            <th>PA</th>
+            <th>visMag</th>
+        </tr>
+        <tr>
+            <td>
+                <input type="number" step="any" name="Size" value="{{ SEL[8] }}">
+                <input type="hidden" name="Size_orig" value="{{ SEL[8] }}">
+            </td>
+            <td>
+                <input type="text" name="PA" value="{{ SEL[9] }}">
+                <input type="hidden" name="PA_orig" value="{{ SEL[9] }}">
+            </td>
+            <td>
+                <input type="number" step="any" name="mag" value="{{ SEL[7] }}">
+                <input type="hidden" name="mag_orig" value="{{ SEL[7] }}">
+            </td>
+        </tr>
+
+        <tr>
+            <th>Priority</th>
+            <td>
+                <select name='Priority'>
+                    <option value="{{ SEL[11] }}" selected disabled hidden>{{ SEL[11] }}</option>
+                    {% for item in PF %}
+                        <option value="{{ item }}">{{ item }}</option>
+                    {% endfor %}
+                </select>
+            </td>
+            <td></td>
+            <td></td>
+        </tr>
+    </table>
+
+    <!-- --------------- buttons ------------------------- -->
+    <table class="short-table">
+        <tr>
+            <td>
+                <input type="hidden" name="ID" value="{{ SEL[1] }}">
+                <input type="hidden" name="Type_orig" value="{{ SEL[4] }}">
+                <input type="hidden" name="Priority_orig" value="{{ SEL[11] }}">
+                {% if OT == "Modify" %}
+                    <input type="submit" value="Modify" onsubmit="return ConfirmModify()";>
+                 {% else %}
+                    <input type="submit" value="Add/Modify" onsubmit="return ConfirmModify()";>
+                {% endif %}
+            </td>
+</form>
+
+    {% if OT == "Modify" %}
+        <form method="POST" action="/removeok" onsubmit="return ConfirmDelete();">
+            <input type="hidden" name="ID" value= "{{ SEL[1] }}">
+            <td><input type="submit" value="Remove"></td>
+        </form>
+    {% endif %}
+
+        <form method="POST" action="/managedb">
+            <td><input type="submit" name="action" value="Cancel" formnovalidate></td>
+        </form>
+
+        <form>
+            <td><button onclick="history.back()" style="white-space: nowrap;">Go Back</button></td>
+        </form>
+
+        </tr>
+    </table>
+
+    <!-- Full screen overlay container -->
+    <div id="fullscreenModal" class="modal" onclick="closeModal()">
+            <img id="modalImage" src="" alt="Full Screen Image" class="modal-content">
+    </div>
+
+    <!-- --------------- scripts ------------------------- -->
+    <script>
+        function ConfirmDelete() {
+            var confirmation = confirm("Are you sure you want to permanently remove this record?");
+            if (confirmation) {
+                return true; // Proceed with form submission
+            } else {
+                return false; // Stop form submission
+            }
+        }
+        function ConfirmModify() {
+            var confirmation = confirm("Are you sure you want to modify this record?");
+            if (confirmation) {
+                return true; // Proceed with form submission
+            } else {
+                return false; // Stop form submission
+            }
+        }
+        function openModal(imageSrc) {
+            document.getElementById('modalImage').src = imageSrc;
+            document.getElementById('fullscreenModal').style.display = 'flex';
+        }
+
+        function closeModal() {
+            document.getElementById('fullscreenModal').style.display = 'none';
+        }
+    </script>
+</body>
+</html>
+

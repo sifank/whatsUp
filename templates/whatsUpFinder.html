@@ -1,0 +1,91 @@
+<html lang="en">
+<head>
+    <meta cahrset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="icon" href="/static/favicon.ico">
+    <title>WhatsUp Finder</title>
+</head>
+
+<body>
+    <table>
+    <tr><th colspan="5"><h2 style="text-align: center;"><span style="background-color: deepskyblue;">Session Report</span></h2></th></tr>
+	<tr>
+
+	</tr><tr>
+	<th>Location</th>
+	<th>Date</th>
+	<th>Longitude</th>
+	<th>Latitude</th>
+	<th>Altitude</th>
+	</tr><tr>
+	<td>{{ Session[3] }}</td>
+	<td>{{ Session[1] }}</td>
+	<td>{{ Session[4] }}</td>
+	<td>{{ Session[5] }}</td>
+	<td>{{ Session[3] }}</td>
+
+	</tr><tr>
+	<th>OTA</th>
+	<th>Mount</th>
+	<th>Camera</th>
+	<th>Reducer</th>
+	<th>Focuser</th>
+    </tr><tr>
+	<td>{{ Session[9] }}</td>
+	<td>{{ Session[11] }}</td>
+	<td>{{ Session[17] }}</td>
+	<td>{{ Session[10] }}</td>
+	<td>{{ Session[14] }}</td>
+
+	</tr><tr>
+	<th>Guider</th>
+	<th>Filter</th>
+	<th>Rotator</th>
+    </tr><tr>
+	<td>{{ Session[13] }}</td>
+	<td>{{ Session[15] }}</td>
+	<td>{{ Session[16] }}</td>
+
+    </tr><tr>
+    </table>
+
+    <label style="font-size: larger; font-weight: bold;">Objective:</label><br>
+        <textarea readonly class="text-box">{{ Session[7] }}</textarea><br>
+    <label style="font-size: larger; font-weight: bold;">Notes:</label><br>
+        <textarea readonly class="text-box">{{ Session[8] }}</textarea>
+
+    </tr></table>
+
+    <table><tr>
+    <th>Targets in this session:</th>
+    <th>Name:</th>
+    <th>Type:</th>
+    <th>Duration:</th>
+    <th>Gain:</th>
+    <th>Binning:</th>
+    </tr>
+     {% for row in Targets %}
+    <tr>
+        <td><form method='Post' action="/details">
+            <button type="submit">Details</button>
+            <input type="hidden" id="ID" name="ID" value="{{ row[0] }}">
+        </form></td>
+	<td>{{ row[1] }}</td>
+	<td>{{ row[3] }}</td>
+	<td>{{ row[8] }}</td>
+	<td>{{ row[9] }}</td>
+	<td>{{ row[11] }}</td>
+    </tr>
+    {% endfor %}
+   </table>
+
+
+    <form method="POST" action="/refresh">
+        <td><input type="submit" name="action" value="Back"></td>
+    </form>
+    
+</body>
+</html>
+

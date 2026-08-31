@@ -1,0 +1,37 @@
+    <tr>
+        <td class="char-limit-col35">For Date (UTC): {{HI["time-utc"]}}</td>
+        <td>(Local): {{HI["time-loc"]}}</td>
+        <td>Framing: {{ DS['FRAMESTAT'] }}
+    </tr>
+
+    <!-------------------------------------------------------------------->
+    <tr>
+        <td class="char-limit-col25">Telescope: {{ DS['TELESCOPE']}} FL: {{ TS[DS['TELESCOPE']] }}</td>
+        <td>Reducer: {{ DS['REDUCER'] }}</td>
+        <td>Camera: {{ DS['CAMERAS'] }}</td>
+    </tr>
+    <tr>
+        <td>FOV: </td><td>Width: {{ HI['fov_width'] }}' </td><td>Height: {{ HI['fov_height'] }}'</td>
+    </tr>
+
+    <!-------------------------------------------------------------------->
+    <tr>
+        <td>GPS</td>
+        <td class="char-limit-col25">Long: {{DS['LONGITUDE']}}° Lat: {{DS['LATITUDE']}}°</td>
+        <td>Elev: {{DS['ELEVATION']}}m</td>
+    </tr>
+
+    <!-------------------------------------------------------------------->
+    <tr>
+        <td class="char-limit-col25">Min Alt: {{ DS['MINALT'] }}</td>
+        <td>Moon Dist: {{ DS['MOONDIST'] }}</td>
+        <td>Vis Mag: {{ DS['visMag']}}</td>
+    </tr>
+
+    <!-------------------------------------------------------------------->
+    <tr>
+        <td class="char-limit-col25">Median: {{ DS['medReqHr'] }} {{ DS['medReqLoc'] }}</td>
+        <td>Priority: {{ DS['priFlag'] }}</td>
+        <td>Database: {{ DS['database'] }}
+    </tr>
+

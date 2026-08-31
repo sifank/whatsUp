@@ -1,0 +1,78 @@
+<html lang="en">
+<head>
+    <meta cahrset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="icon" href="/static/favicon.ico">
+    <title>WhatsUp DB Add Object</title>
+</head>
+<body>
+
+    
+	<form method="POST" action="/addok">
+	<table>
+    <tr><th colspan="6"><h2 style="text-align: center;"><span style="background-color: deepskyblue;">DB Add Object</span></h2></th></tr>
+	<tr>
+
+    <!-- --------------- input ------------------------- -->
+    </tr><tr>
+        <th>Name</th>
+        <th>Common Name</th>
+        <th>Type</th>
+	<tr>
+        <td><input required type="text" name="objectName" value= "{{ DF['objectName'] }}"></td>
+        <td><input type="text" name="objectName" value="{{ DF[objectName] | trim if DF[objectName] is not none else '' }}" required></td>
+        <td><textarea name="commonName" rows="3" cols="50" style="background-color: white; color: black;"></textarea></td>
+        <td><select name='Type'>
+        <option value={{ DF['otype'] }} selected hidden>"{{ DSO[DF['otype']] }}"</option>
+        {% for item in DSO %}
+        <option value="{{ item }}" >{{ DSO[item] }}</option>
+        {% endfor %}
+        </select></td>
+
+    </tr><tr>
+        <th>RA</th>
+        <th>DEC</th>
+        <th>visMag</th>
+    </tr><tr>
+            <td><input type="number" step="any" name="ra" value= {{ DF['rightascension'] }}></td>
+            <td><input type="number" step="any" name="dec" value={{ DF['declination'] }}></td>
+            <td><input type="number" step="any" name="mag" value={{ DF['magnitude'] }}></td>
+
+        </tr><tr>
+            <th>Size</th>
+            <th>PA</th>
+            <th>Image Loc</th>
+        </tr><tr>
+            <td><input type="number" step="any" name="Size" value={{ DF['apSize'] }}></td>
+            <td><input type="number" step="any" name="PA" value={{ DF['PA'] }}></td>
+            <td><input type="text" name="imageLoc" value={{ DF['imageLoc'] }}></td>
+
+        </tr><tr>
+            <th>Priority</th>
+                <td><select name='Priority'>
+                <option value="{{ DF['procFlag'] }}" selected hidden>""{{ DF['procFlag'] }}""</option>
+                {% for item in PF %}
+                        <option value="{{ item }}">{{ item }}</option>
+                {% endfor %}
+                </select></td>
+
+        </tr><tr>
+
+    </table>
+    <br>
+
+		<input type="submit" name="action" value="Add Object">
+        <input type="submit" name="action" value="Cancel" formnovalidate>
+    </form>   
+
+    <form method="POST" action="/objSearch">
+            <input type="search" name="lookupObject" required />
+            <input type="hidden" name="OpType" value="Add">
+            <button type="submit">Lookup Object Online</button>
+    </form>
+
+</body>
+</html>
+

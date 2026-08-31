@@ -1,0 +1,52 @@
+<!-- whatsUpSearch.html -->
+<html lang="en">
+<head>
+    <meta cahrset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="icon" href="/static/favicon.ico">
+    <title>WhatsUp Search Results</title>
+</head>
+
+<body>
+    <div>
+    <table>
+    <tr><th colspan="6"><h2 style="text-align: center;"><span style="background-color: deepskyblue;">Search Results</span></h2></th></tr>
+    <tr>
+    <th> </th>
+	<th>Date</th>
+	<th>Location</th>
+	<th>OTA</th>
+	<th>Mount</th>
+	<th>Camera</th>
+    </tr>
+    {% for row in Session %}
+    <tr>
+        <td><form method='Post' action="/details">
+            <button type="submit">Details</button>
+            <input type="hidden" id="ID" name="ID" value="{{ row[0] }}">
+        </form></td>
+	<td>{{ row[1] }}</td>
+	<td>{{ row[3] }}</td>
+	<td>{{ row[9] }}</td>
+	<td>{{ row[11] }}</td>
+	<td>{{ row[17] }}</td>
+    </tr>
+    {% endfor %}
+    </table>
+    </div>
+
+    <div>
+    <table style="td-small;"><tr>
+    <form method="POST" action="/refresh">
+        <td><input type="submit" name="action" value="Back"></td>
+    </form>
+
+    </form>
+    </tr></table>
+    </div>
+
+</body>
+</html>
+
