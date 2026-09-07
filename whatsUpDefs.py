@@ -6,15 +6,18 @@
 
 DEBUG = True   # TODO Turn off when all done
 
+from zoneinfo import ZoneInfo   # TODO is this satisified by timezone in datetime?
+from astroplan import Observer, FixedTarget
+
 import mysql.connector, os
 from datetime import datetime, timezone, UTC, timedelta, time
-import ephem, math, sys
+import ephem, math, sys, calendar
 import matplotlib.pyplot as plt
 import numpy as np
 from skyfield.api import wgs84, load, Star, Topos
 from skyfield import almanac
 from skyfield.magnitudelib import planetary_magnitude
-from astropy.coordinates import SkyCoord
+from astropy.coordinates import SkyCoord, EarthLocation
 import astropy.units as u
 from astropy.time import Time
 import urllib.parse, socket
@@ -123,6 +126,73 @@ def calculate_fov(tele_fl, reducer_factor, sensor_width_mm, sensor_height_mm):
     fov_width_deg = 120 * math.atan(sensor_width_mm / (2 * eff_fl)) * (180 / math.pi)
     fov_height_deg = 120 * math.atan(sensor_height_mm / (2 * eff_fl)) * (180 / math.pi)
     return fov_width_deg, fov_height_deg
+
+
+#--------------------------------------------------------
+# calc date/time of median xfer
+def medianXfer(target):
+    # FIXME need to stitch in/replace these fields
+    # 1. Define your observing location and target local timezone
+    local_tz = ZoneInfo("America/Los_Angeles")
+    # 3. Analyze calculations for the year 2026
+    year = 2026
+    location = EarthLocation(lat=44.8512*u.deg, lon=-124.0326*u.deg, height=10*u.m)
+    observer = Observer(location=location, name="KOBS")
+
+    try:
+        conn = mysql.connector.connect(**db_config)
+        cursor = conn.cursor()
+
+        # Query matching your table and column structure
+        query = f"SELECT objectName, rightascension, declination FROM KBcatalog where objectName like '{target}';"
+        cursor.execute(query)
+        row = cursor.fetchone()
+        cursor.close()
+        conn.close()
+
+    except mysql.connector.Error as e:
+        cursor.close()
+        conn.close()
+        return f"MySQL Error: {e}", 'N/A', 0.0
+
+    try:
+        name, ra_deg, dec_deg = row
+        # BOTH ra and dec are treated as degrees (u.deg)
+        coord = SkyCoord(ra=ra_deg*u.deg, dec=dec_deg*u.deg)
+        target = FixedTarget(coord=coord, name=name)
+    except:
+        print(f"Could not find {target}")
+        return f'Could not fine {target}', 'N/A', 0.0
+
+    months = np.arange(1, 13)
+    best_month = None
+    max_altitude = -90.0
+    best_midnight_time = None
+
+    # Step A: Find the month where it's highest at midnight
+    for month in months:
+        time_frame = Time(f"{year}-{month:02d}-15 12:00:00")
+        midnight = observer.midnight(time_frame)
+        target_alt = observer.altaz(midnight, target).alt.value
+
+        if target_alt > max_altitude:
+            max_altitude = target_alt
+            best_month = month
+            best_midnight_time = midnight
+
+    if max_altitude > 0:
+        # Step B: Calculate the exact meridian transit time near that optimum date
+        transit_time = observer.target_meridian_transit_time(best_midnight_time, target, which='next')
+        transit_alt = observer.altaz(transit_time, target).alt.value
+
+        # Step C: Convert Astropy Time to timezone-aware local datetime
+        utc_dt = transit_time.to_datetime(timezone=ZoneInfo("UTC"))
+        local_dt = utc_dt.astimezone(local_tz)
+        formatted_local_time = local_dt.strftime("%Y-%m-%d %I:%M %p %Z")
+
+        return calendar.month_name[best_month], formatted_local_time, transit_alt
+    else:
+        return 'Not Visible', 'N/A', 0.0
 
 #--------------------------------------------------------
 # Diag printout if DEBUG is true
@@ -327,15 +397,20 @@ def lookup_objectTelescopius(newObject):
         except:
             otype = f"**{obj.get('types')}**"
 
+        if obj.get('visual_mag') is None:
+            visMag = 0.0
+        else:
+            visMag = obj.get('visual_mag')
+
         target = (
             'Telescopius',
             0,
             newObject,
             ', '.join(obj.get('alt_ids')),
             otype,
-            round(coord.ra.deg, 4),
-            round(obj.get('dec'), 4),
-            obj.get('visual_mag'),
+            round(float(coord.ra.deg), 4),
+            round(float(obj.get('dec')), 4),
+            round(visMag,1),
             round(obj.get('major_axis')/60, 1),
             0.0,
             obj.get('thumbnail_url'),
@@ -497,7 +572,7 @@ def createList(app, CAMERAS, TELESCOPE):
 
     # for name, data in db:
     while row is not None:
-        index, name, common_name, obj_type, ra, dec, mag, size, pa, image, flag = row
+        index, name, common_name, obj_type, ra, dec, mag, size, pa, image, flag, bestMonth, bestDT, DTalt = row
         #debug(f"Row {index} {name}")
         target = Star(ra_hours=ra / 15, dec_degrees=dec)
         alt, az, _ = observer.at(t).observe(target).apparent().altaz()
@@ -538,15 +613,15 @@ def createList(app, CAMERAS, TELESCOPE):
                             # --- and save for output to table and/or plot ---------------------------
                             visible_data.append({"name": name,
                                                 "common_name": common_name,
-                                                "alt": alt.degrees,
-                                                "az": az.degrees,
+                                                "alt": float(alt.degrees),
+                                                "az": float(az.degrees),
                                                 "size": psize,
                                                 "mag": pmag,
                                                 "type": obj_type,
                                                 "exposure": recommended_sub,
                                                 "framing": framing_status,
                                                 "PA": pa,
-                                                "moon_sep": sep_deg,
+                                                "moon_sep": float(sep_deg),
                                                 "priority": flag,
                                                 "meridian": timeFromMeridian,
                                                 "zenith_date": midnight_zenith,
