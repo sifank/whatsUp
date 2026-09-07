@@ -4,14 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    <link rel="icon" href="/static/favicon.ico">
+    <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
     <title>Sky Chart</title>
     <style>
         body { font-family: sans-serif; text-align: center; margin-top: 50px; background-color: #f7f9fa; }
 
         .preview-image {
             width: 100%;
-            max-width: 500px;
+            max-width: 600px;
             height: auto;
             border: 3px solid #333;
             cursor: pointer; /* Changes mouse cursor to hand icon on hover */

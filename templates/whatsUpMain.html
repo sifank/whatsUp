@@ -9,7 +9,7 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    <link rel="icon" href="/static/favicon.ico">
+    <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
     <title>What's Up Criteria'</title>
 </head>
 <body>
@@ -134,22 +134,25 @@
             {% endfor %}
             </select></span></td>
 
-        <!------------- Select Database  -------------------->
-        <td><label>Database   </label><span style="float: right;">
-                <select name='database' id='database'>
-                <option value="{{ DS['database'] }}" selected disabled hidden> {{ DS['database'] }} </option>
-                {% for item in ["KBcatalog", "IPcatalog", "DScatalog"] %}
-                        <option value="{{ item }}">{{ item }}</option>
-                {% endfor %}
-                </select></span></td>
-
     </tr>
-    <!--===============================================================-->
+
+    <!--==================Select Priority Types ============================-->
+    <!--==================FIXME ============================-->
+    <th colspan="7"><span style="text-align: center;">Select Priorities</span></tr>
+    <tr>
+        <td colspan="7">
+            <label><input type="checkbox" id="Pcheck-all" name="All" value=255 {% if '255' in DS['TYPE'] %}checked{% endif %}>All</label>
+            <label><input type="checkbox" class="Pcheck-item" name="Need" value=0 {% if "0" in DS['TYPE'] %}checked{% endif %}> Need</label>
+            <label><input type="checkbox" class="Pcheck-item" name="Done" value=17 {% if "17" in DS['TYPE'] %}checked{% endif %}>Done</label>
+            <label><input type="checkbox" class="Pcheck-item" name="Redo" value=13 {% if "13" in DS['TYPE'] %}checked{% endif %}> Redo</label>
+            <label><input type="checkbox" class="Pcheck-item" name="Should Redo" value=3 {% if "3" in DS['TYPE'] %}Pchecked{% endif %}> Should Redo</label>
+        </td></tr>
+
+    <!--==================Select Target Types ============================-->
     <th colspan="7"><span style="text-align: center;">Select Target Types</span></tr>
     <tr>
         <td colspan="7">
         <label><input type="checkbox" id="check-all" name="All" value=255 {% if '255' in DS['TYPE'] %}checked{% endif %}>All</label>
-
         <label><input type="checkbox" class="check-item" name="Star" value=0 {% if "0" in DS['TYPE'] %}checked{% endif %}> Stars</label>
         <label><input type="checkbox" class="check-item" name="Mstar" value=17 {% if "17" in DS['TYPE'] %}checked{% endif %}>Binary Stars</label>
         <label><input type="checkbox" class="check-item" name="Asterism" value=13 {% if "13" in DS['TYPE'] %}checked{% endif %}> Asterism</label>
@@ -169,11 +172,12 @@
     </tr>
     </table>
 
+    <!--==================Buttons ============================-->
     <table>
-    <tr><td colspan="7">Click 'Update' first if you make any changes above</td></tr>
+    <tr><td colspan="4">Click 'Update' if you make any changes above:</td>
+    <td colspan="2"><button type="submit" name="action" value="update">Update</button> </td></tr>
     <tr>
         <td><button type="submit" name="action" value="list" style="white-space: nowrap;">Create List</button> </td>
-        <td><button type="submit" name="action" value="update">Update</button> </td>
     </form>
 
     <form method="POST" action="defaults">
@@ -192,9 +196,16 @@
         <td><input type="submit" name="hilites" value="Tonights Hilites"> </td>
     </form>
 
-    <form method="POST" action="/managedb">
-        <td><input type="submit" name="managedb" value="Manage DB"> </td>
+    <form method="POST" action="monthlyHilites">
+        <td><input type="submit" name="monthlyHilites" value="Monthly Hilites"> </td>
     </form>
+    </tr><tr>
+
+    <!------------------ FIXME change 5010 and 5012 to actual when testing is finished ------->
+    <td style="white-space: nowrap;"><a href="http://depoe:5010" class = "button">Manage DB</a></td>
+    <td style="white-space: nowrap;"><a  href="http://depoe:5012" class = "button">Manage Lists</a></td>
+    <td style="white-space: nowrap;"><a  href="http://depoe:5001" class = "button">Sessions</a></td>
+    <td style="white-space: nowrap;"><a  href="http://depoe:5002" class = "button">Targets</a></td>
 
     </tr>
     </table>

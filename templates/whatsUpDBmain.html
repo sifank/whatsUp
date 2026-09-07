@@ -4,14 +4,17 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    <link rel="icon" href="/static/favicon.ico">
+    <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
     <title>WhatsUp Manage DB</title>
 </head>
 
 <body>
-    <div>
-    <table table-layout: fixed; >
-    <tr><th colspan="11"><h2 style="text-align: center;"><span style="background-color: deepskyblue;">WhatsUp Manage Database</span></h2></th></tr>
+    <h2 style="text-align: center; background-color: deepskyblue; width: 100%; margin: 0; padding: 15px 0;">
+    KOBS What's Up Manage Database
+</h2>
+
+    <div class="scrollable-table-wrapper">
+    <table>
     <tr>
         <th style="width: 10ch;"> </th>
         <th style="width: 25ch;">Name</th>
@@ -45,21 +48,21 @@
             <td style="width: 25ch;">{{ row[6] }}</td>
             <td style="width: 25ch;">{{ row[8] }}</td>
             <td>
-                {% if row[9] %}
+               {% if row[9] %}
                     {% if row[9].startswith('https://') or row[9].startswith('http://') %}
                         <img src="{{ row[9] }}"
                             alt="{{ row[9] }}"
-                            style="max-width: 100px; height: auto; cursor: pointer;"
+                            style="max-width: 100px; height: auto; cursor: pointer; border: 2px solid #e74c3c;"
                             onclick="openModal('{{ row[9] }}')">
-                        <!--<img src="{{ row[9] }}" alt="Astro Image" style="max-width: 150px; height: auto;" onclick="openModal('{{ row[9] }}')">-->
                     {% else %}
                         <img src="{{url_for('static', filename='astroimages/' + row[9]) }}"
                             alt="{{ row[9] }}"
-                            style="max-width: 100px; height: auto; cursor: pointer;"
+                            style="max-width: 100px; height: auto; cursor: pointer; border: 2px solid #2ecc71;"
                             onclick="openModal('{{ url_for('static', filename='astroimages/' + row[9]) }}')">
-                        <!--<img src="{{ url_for('static', filename='astroimages/' + row[9]) }}" alt="Astro Image" width="150" onclick="openModal('{{ row[9] }}')">-->
                     {% endif %}
                 {% endif %}
+            </td>
+
             <td style="width: 25ch;">
             <form method="POST" action="/updatePriority">
             <select name="Priority"
@@ -77,20 +80,20 @@
     </table>
     </div>
 
+    <!-- Full screen overlay container -->
+    <div id="fullscreenModal" class="modal" onclick="closeModal()">
+        <img id="modalImage" src="" alt="Full Screen Image" class="modal-content">
+    </div>
+
     <!---------------  Buttons ------------------------------------------->
     <div>
     <table style="td-small;"><tr>
 
     <form method="POST" action="/add">
         <td><input type="submit" value="Add"></td>
-    </form>
-    <form method="POST" action="/refresh">
-        <td><input type="submit" value="New Criteria"></td>
-    </form>
-
     <td><button onclick="location.reload();">Refresh Page</button></td>
     <td><button onclick="history.back()" style="white-space: nowrap;">Go Back</button></td>
-
+    </form>
     <form method="POST" action="/search">
         <tr><td>
             <input type="submit" name="action" value="Search">
@@ -106,13 +109,14 @@
         </td>
     </tr>
     </form>
+    <tr>
+    <!------------------ FIXME change 5010 and 5012 to actual when testing is finished ------->
+    <td style="white-space: nowrap;"><a  href="http://depoe:5012" class = "button">Manage Lists</a></td>
+    <td style="white-space: nowrap;"><a  href="http://depoe:5001" class = "button">Sessions</a></td>
+    <td style="white-space: nowrap;"><a  href="http://depoe:5002" class = "button">Targets</a></td>
+    <td style="white-space: nowrap;"><a href="http://depoe:5010" class = "button">Whats Up</a></td>
 
     </tr></table>
-    </div>
-
-    <!-- Full screen overlay container -->
-    <div id="fullscreenModal" class="modal" onclick="closeModal()">
-    <img id="modalImage" src="" alt="Full Screen Image" class="modal-content">
     </div>
 
     <!---------------------------- scripts ------------------------------->
@@ -145,7 +149,19 @@
         }
         function openModal(imageSrc) {
             console.log("Opening image source:", imageSrc);
-            document.getElementById('modalImage').src = imageSrc;
+            const modalImg = document.getElementById('modalImage');
+            modalImg.src = imageSrc;
+            console.log("Image URL Checked:", modalImg.src);
+            if (imageSrc.startsWith('http')) {
+                modalImg.classList.add('border-red');
+                modalImg.classList.remove('border-green');
+                console.log("Result: Applied RED border");
+            } else {
+                // If it's a relative path like /static/ -> GREEN
+                modalImg.classList.add('border-green');
+                modalImg.classList.remove('border-red');
+                console.log("Result: Applied GREEN border");
+            }
             document.getElementById('fullscreenModal').style.display = 'flex';
         }
         function closeModal() {

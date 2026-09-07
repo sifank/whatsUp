@@ -9,7 +9,7 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    <link rel="icon" href="/static/favicon.ico">
+    <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
     <title>KOBS What's Up'</title>
 </head>
 
@@ -21,7 +21,7 @@
 
         <!-------------------------------------------------------------------->
         <tr>
-            <td style="width: 35ch;">Sun Altitude: {{HI["sun_alt"]}} {{HI["sky_status"]}}</td>
+            <td style="width: 40ch;">Sun Altitude: {{HI["sun_alt"]}} {{HI["sky_status"]}}</td>
             <td style="width: 45ch;">Moon: Illumination: {{HI["moon_illumination"]}} Alt: {{HI["moon_alt"]}} Az: {{HI["moon_az"]}}</td>
             <td style="width: 30ch;">Equip FOV: {{HI['fov_width']}} x {{HI['fov_height']}}
         </tr>
@@ -46,6 +46,7 @@
         <th style="width: 25ch;">Moon Sep</th>
         <th style="width: 25ch;">Priority</th>
         <th style="width: 25ch;">Image</th>
+        <th style="width: 25ch;">Zenith Date</th>
         </tr>
 
         <form method="POST" action="/file">
@@ -67,29 +68,33 @@
         <td style="width: 25ch; ">{{ row.moon_sep|round(1) }}</td>
         <td style="width: 25ch; ">{{ row.priority }}</td>
         <td>
-                {% if row.image %}
+               {% if row.image %}
                     {% if row.image.startswith('https://') or row.image.startswith('http://') %}
                         <img src="{{ row.image }}"
                             alt="{{ row.image }}"
-                            style="max-width: 100px; height: auto; cursor: pointer;"
+                            style="max-width: 100px; height: auto; cursor: pointer; border: 2px solid #e74c3c;"
                             onclick="openModal('{{ row.image }}')">
-                        <!--<img src="{{ row.image }}" alt="Astro Image" style="max-width: 150px; height: auto;" onclick="openModal('{{ row.image }}')">-->
                     {% else %}
                         <img src="{{url_for('static', filename='astroimages/' + row.image) }}"
                             alt="{{ row.image }}"
-                            style="max-width: 100px; height: auto; cursor: pointer;"
+                            style="max-width: 100px; height: auto; cursor: pointer; border: 2px solid #2ecc71;"
                             onclick="openModal('{{ url_for('static', filename='astroimages/' + row.image) }}')">
-                        <!--<img src="{{ url_for('static', filename='astroimages/' + row.image) }}" alt="Astro Image" width="150" onclick="openModal('{{ row.image }}')">-->
                     {% endif %}
                 {% endif %}
+        </td>
+        <td style="width: 25ch; ">{{ row.zenith_date }}</td>
         </tr>
         {% endfor %}
+
     <!----------- Selection Options ---------------------->
     </table></div>
     <table style="td-small;">
         <tr>
             <td><button type="button" onclick="checkAll(true)" style="white-space: nowrap;">Select All</button></td>
             <td><button type="button" onclick="checkAll(false)" style="white-space: nowrap;">Select None</button></td>
+            <td><input type="hidden" name="Selected" value="{{ VS }}">
+            <input type="hidden" name="HI" value="{{ HI }}">
+            <button type="submit" name="action" value="cleanup" style="white-space: nowrap;">Remove Unselected</button></td>
             <td><button type="submit" name="action" value="output" style="white-space: nowrap;">Output List</button></td>
             <td><input type="hidden" name="Selected" value="{{ VS }}">
             <button type="submit" name="action" value="plot" style="white-space: nowrap;">Plot Skychart</button>
@@ -104,7 +109,7 @@
 
     <!-- Full screen overlay container -->
     <div id="fullscreenModal" class="modal" onclick="closeModal()">
-    <img id="modalImage" src="" alt="Full Screen Image" class="modal-content">
+        <img id="modalImage" src="" alt="Full Screen Image" class="modal-content">
     </div>
 
     <script>
@@ -116,9 +121,22 @@
         }
         function openModal(imageSrc) {
             console.log("Opening image source:", imageSrc);
-            document.getElementById('modalImage').src = imageSrc;
+            const modalImg = document.getElementById('modalImage');
+            modalImg.src = imageSrc;
+            console.log("Image URL Checked:", modalImg.src);
+            if (imageSrc.startsWith('http')) {
+                modalImg.classList.add('border-red');
+                modalImg.classList.remove('border-green');
+                console.log("Result: Applied RED border");
+            } else {
+                // If it's a relative path like /static/ -> GREEN
+                modalImg.classList.add('border-green');
+                modalImg.classList.remove('border-red');
+                console.log("Result: Applied GREEN border");
+            }
             document.getElementById('fullscreenModal').style.display = 'flex';
         }
+
         function closeModal() {
             document.getElementById('fullscreenModal').style.display = 'none';
         }
