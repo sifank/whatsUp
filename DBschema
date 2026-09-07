@@ -10,6 +10,9 @@ CREATE TABLE `KBcatalog` (
   `PA` float DEFAULT NULL,
   `imageLoc` varchar(100) DEFAULT NULL,
   `procFlag` varchar(15) DEFAULT NULL,
+  `bestMonth` varchar(10) DEFAULT NULL,
+  `bestDT` varchar(30) DEFAULT NULL,
+  `DTalt` float DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `idx_objectName` (`objectName`)
 ) ENGINE=InnoDB
